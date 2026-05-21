@@ -1,0 +1,21 @@
+# Secrets
+.env
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# macOS files
+.DS_Store
+
+# VS Code local settings
+.vscode/
+
+# Data files
+data/
+
+# Logs
+*.log
