@@ -28,3 +28,23 @@ Past achievement: Download and install: VS Code, Git, Python. Register for Githu
 Connect Yaming's VS Code to Github repository.
 
 
+
+Never commit:
+
+passwords
+API keys
+secrets
+
+to GitHub.
+
+Instead:
+create:
+
+.env
+
+Example:
+
+OPENAI_API_KEY=xxxxx
+ALPACA_API_KEY=xxxxx
+
+And add to .gitignore
