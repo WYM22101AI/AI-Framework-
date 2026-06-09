@@ -11,7 +11,7 @@ API_SECRET = os.getenv("APCA_API_SECRET")
 
 client = StockHistoricalDataClient(API_KEY, API_SECRET)
 
-request = StockLatestQuoteRequest(symbol_or_symbols="AAPL")
+request = StockLatestQuoteRequest(symbol_or_symbols="TSLA")
 
 quote = client.get_stock_latest_quote(request)
 
