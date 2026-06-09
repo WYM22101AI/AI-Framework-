@@ -20,7 +20,6 @@ client = StockHistoricalDataClient(API_KEY, API_SECRET)
 
 con = duckdb.connect("market_data.duckdb")
 
-# Create table once if it doesn't exist
 con.execute("""
 CREATE TABLE IF NOT EXISTS stock_prices (
     symbol VARCHAR,
@@ -33,7 +32,6 @@ CREATE TABLE IF NOT EXISTS stock_prices (
 )
 """)
 
-# Find latest stored date
 latest = con.execute("""
     SELECT MAX(trade_date)
     FROM stock_prices
@@ -41,16 +39,13 @@ latest = con.execute("""
 """).fetchone()[0]
 
 if latest is None:
-    # First run: pull 5 years
     start_date = datetime.now() - timedelta(days=365 * 5)
 else:
-    # Only pull data after latest date
     start_date = datetime.combine(
         latest + timedelta(days=1),
         datetime.min.time()
     )
 
-# Only request data if we're missing dates
 if start_date.date() <= datetime.now().date():
 
     request = StockBarsRequest(
@@ -88,7 +83,6 @@ if start_date.date() <= datetime.now().date():
             "volume"
         ]]
 
-        # Append new rows
         con.register("new_data", df)
 
         con.execute("""
