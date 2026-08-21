@@ -19,3 +19,10 @@ data/
 
 # Logs
 *.log
+
+# Virtual environment
+venv/
+
+# Old DuckDB file in root (data/ is the correct location)
+market_data.duckdb
+market_data.duckdb.wal
