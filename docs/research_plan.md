@@ -356,13 +356,146 @@ CREATE TABLE lessons_learned (
 |------|------|-----------|
 | 1 | Store features in DuckDB | Enables everything downstream |
 | 2 | Build stats_engine.py | The Skeptic needs tools |
-| 3 | Build backtester.py | Can test hypotheses |
+| 3 | Build backtester.py (using Alpaca Skills methodology) | Can test hypotheses |
 | 4 | Implement Strategy A (momentum) | Simplest to test |
 | 5 | Run full Skeptic pipeline on Strategy A | Validate the framework |
 | 6 | Add Strategies B-E | Expand hypothesis pool |
 | 7 | Build Gatekeeper logic | Filter survivors |
-| 8 | Connect paper trading | Go live |
+| 8 | Connect paper trading (using Alpaca Skills for execution) | Go live |
 | 9 | Add Governor + research memory | Self-improvement |
+| 10 | Evaluate Unusual Whales / Massive data (only if research needs it) | Expand information |
+
+---
+
+## Three-Layer Architecture
+
+### Layer A: Ground Truth Mechanics (DON'T reinvent)
+
+Use Alpaca Skills Library (https://github.com/alpacahq/alpaca-skills) for:
+
+| Skill | What it standardizes |
+|-------|---------------------|
+| `alpaca-trading-backtest` | Backtesting methodology, guardrails, assumptions, reporting |
+| `alpaca-broker-market-data` | Data acquisition patterns, API conventions |
+| `alpaca-broker-trading-orders` | Order semantics, types, execution |
+| `alpaca-broker-reconciliation-idempotency` | Prevent duplicate orders on retries |
+| `alpaca-broker-rate-limits-resilience` | API throttling, transient failure handling |
+| `alpaca-broker-money-precision` | Financial calculation precision (not naive floats) |
+
+### Layer B: Research Assumptions (WE define explicitly)
+
+These are choices, not facts:
+
+```
+Decision time:        6:00 PM ET (after close)
+Execution:            Next market open
+Fill price:           Open price + estimated slippage
+Slippage model:       0.05% of trade value (based on historical spread)
+Position sizing:      Volatility-adjusted (lower vol = larger position)
+Max position:         25% of portfolio
+Universe:             50-100 liquid US stocks
+Rebalance:            Daily
+Holding period:       Variable (1-20 days based on strategy)
+Commission:           $0 (Alpaca)
+Market impact:        Estimated from relative volume
+Information cutoff:   Only data available before decision timestamp
+```
+
+### Layer C: Our Secret Sauce (WHERE we spend intellectual effort)
+
+```
+What information matters?
+        |
+What is noise?
+        |
+What combinations matter?
+        |
+Under what market regimes?
+        |
+How stable is the relationship?
+        |
+Can it survive out-of-sample?
+        |
+Can it survive realistic execution?
+```
+
+The differentiator: **AI finds hypotheses, deterministic science tries to destroy them, only robust signals survive.**
+
+---
+
+## Data Source Roadmap
+
+### Now (free, already integrated)
+
+| Source | Data | Status |
+|--------|------|--------|
+| Alpaca | Stock prices, news, paper trading | WORKING |
+| FRED/ALFRED | Macro indicators with release dates | WORKING |
+| Alpha Vantage | Earnings calendar, EPS surprises | WORKING |
+| SEC EDGAR | Revenue, income, filings with timestamps | WORKING |
+
+### Experiment Next (when research identifies a specific need)
+
+| Source | Data | When to add |
+|--------|------|-------------|
+| Unusual Whales | Options flow, GEX, dark pool, MCP+Skills | When we test "does options positioning add information?" |
+| Massive (Polygon) | Deep historical trades/quotes, options, MCP | When we need execution realism or longer history |
+| Prediction markets | Event probabilities (Fed, elections) | When we test macro-event strategies |
+
+### Later (only if proven valuable)
+
+| Source | Data | When |
+|--------|------|------|
+| Databento | Tick data, order book, microstructure | If execution dynamics explain strategy behavior |
+| Nasdaq Data Link | Specialized alternative datasets | If specific alternative data hypothesis emerges |
+
+### Rule: Every new data source must prove its value
+
+```
+BASE MODEL (existing features)
+    |
++ new data source
+    |
+Does out-of-sample performance improve?
+    |
+Does it add information BEYOND existing features?
+    |
+Does it survive transaction costs?
+    |
+Does it improve across regimes?
+    |
+YES to all? --> Keep it
+NO? --> Drop it, record the lesson
+```
+
+---
+
+## Execution Realism Module
+
+Don't assume: `signal -> close price -> magically filled`
+
+Instead model:
+```
+Signal generated at 5:30 PM
+        |
+Eligible for execution: next open
+        |
+Historical bid/ask spread at open
+        |
+Estimated slippage (f(volume, trade size))
+        |
+Simulated fill price
+        |
+Actual position
+```
+
+Key warning from Alpaca's own disclosure: backtest calculations may not account for liquidity constraints, sudden price moves, execution delays, and order priority.
+
+Our backtest should explicitly test sensitivity to:
+- 2x assumed spread
+- Execution at open vs VWAP vs close
+- Removing best 5 trades (were they luck?)
+- Different market hours assumptions
 
 ---
 
@@ -376,3 +509,5 @@ CREATE TABLE lessons_learned (
 6. **Probability, not prediction.** We want 55% win rates, not certainty.
 7. **LLMs reason, code calculates.** Never let AI compute a p-value.
 8. **The Skeptic is your best friend.** Ideas that survive it are rare and valuable.
+9. **Don't let data access become feature soup.** 500 features that maximize historical Sharpe = overfitting.
+10. **Every data source must earn its place.** Prove it adds incremental out-of-sample value.
