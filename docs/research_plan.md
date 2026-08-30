@@ -92,6 +92,91 @@ The core philosophy: **Our edge is not "AI finds patterns." Our edge is: AI find
 
 ---
 
+## Technology Stack
+
+### Two AI Systems (don't conflate them)
+
+| System | Role | What it is |
+|--------|------|-----------|
+| **CoCo Desktop** | Software engineer | Builds, debugs, maintains the codebase |
+| **smolagents (HuggingFace)** | Research team | Runs the 6-agent quant research loop |
+
+CoCo develops the platform. smolagents runs the research.
+
+### Full Stack
+
+```
+Development:          GitHub + CoCo Desktop
+Agent orchestration:  HuggingFace smolagents (multi-agent, MCP, tool-calling)
+Models:               HF models / Ollama (local) / OpenAI/Anthropic (when needed)
+Financial infra:      Alpaca (prices, trading, Skills library)
+Data:                 FRED, SEC, Alpha Vantage, Alpaca, DuckDB
+Statistics:           SciPy, statsmodels, scikit-learn, NumPy
+Backtesting:          Our engine + Alpaca Skills methodology
+Execution:            Alpaca paper trading API
+```
+
+### Why smolagents?
+
+HuggingFace's `smolagents` is an open-source agent framework that supports:
+- Multi-step agents that write/execute Python
+- Tool calling and MCP integration
+- Multiple model backends (HF, Ollama, OpenAI, Anthropic)
+- Multi-agent orchestration (managed agents)
+- HF Spaces as importable tools
+
+Reference: https://huggingface.co/docs/smolagents/main/index
+Agents course: https://huggingface.co/learn/agents-course/unit0/introduction
+
+**Caveat:** smolagents is marked as experimental. Our core research logic (features, stats, backtests, DuckDB schema) must remain ordinary Python we own. smolagents is an orchestration layer we can replace if needed.
+
+---
+
+## Build vs Borrow: What We Own, What We Reference
+
+### BORROW: Standard implementations (don't reinvent)
+
+Use established libraries/projects for industry-standard calculations:
+
+| What | Source | Why borrow |
+|------|--------|-----------|
+| Yield / return calculations | numpy, pandas | Standard financial math |
+| Event study methodology | statsmodels, reference projects | Well-established academic method |
+| Backtesting framework | Alpaca Skills + our engine | Standardized guardrails |
+| Execution/order mechanics | Alpaca Skills | Boring but critical correctness |
+| Agent orchestration | smolagents | Don't build our own agent framework |
+| Financial NER / sentiment | HuggingFace models/Spaces | Pretrained is better than DIY |
+| Statistical tests | SciPy, statsmodels | Bootstrap, permutation, t-tests |
+| Technical indicators | pandas-ta or manual (already done) | Standard formulas |
+
+### BUILD: Our custom research layer (this is our edge)
+
+| What | Why custom |
+|------|-----------|
+| Feature selection + validation | Our research methodology |
+| Skeptic kill criteria | Our quality thresholds |
+| Hypothesis generation (Scout) | Our market intuition + AI |
+| Regime classification | Our definition of market states |
+| Research memory schema | Our experiment tracking |
+| Strategy filtering (Gatekeeper) | Our promotion criteria |
+| Governor research agenda | Our research priorities |
+| Noise filtering philosophy | Our core differentiator |
+
+### STUDY: Open-source reference projects (mine for architecture, not strategy)
+
+| Project | Stars | What to study |
+|---------|-------|--------------|
+| TradingAgents (TauricResearch) | 15K+ | Multi-agent architecture, structured outputs, decision logs |
+| quant-agent (yebof) | — | 9 specialized agents, deterministic risk filters, quarterly meta-reflector |
+| Alpha-Agent (henrygers) | — | Alpha discovery cycle, evolving knowledge base |
+| Magents (LLMQuant) | — | Multi-strategy simulation, transaction costs, slippage modeling |
+| FinResearch-Agent (Caspian-Lin) | — | Research memo generation, "if backtest looks too good, suspect a bug" |
+| QuantDinger (dorucioclea) | — | Research-to-execution boundary, audit logs |
+
+**How to use these:** Ask CoCo to analyze their architecture, agent roles, evaluation methods, data schemas, and statistical safeguards. Do NOT copy trading strategies. Borrow engineering patterns.
+
+---
+
 ## Phase Overview
 
 ```
