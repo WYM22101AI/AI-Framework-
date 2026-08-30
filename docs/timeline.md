@@ -9,17 +9,20 @@
 
 ## Month 1 (Sep 2026): Foundation Complete + First Strategy Test
 
-### Week 1-2: Polish the data pipeline
+### Week 1-2: Polish the data pipeline + study reference projects
 - [ ] Fix options fetcher (switch to alpaca-py client)
 - [ ] Store computed features in DuckDB `daily_features` table
 - [ ] Add regime features (VIX level, yield curve, Fed direction)
 - [ ] Add fundamental features (days since earnings, EPS surprise)
 - [ ] Set up Windows Task Scheduler for daily auto-updates
+- [ ] **Study:** Clone and analyze reference repos (TradingAgents, quant-agent, FinResearch-Agent) — extract architecture patterns, agent roles, data schemas. CoCo can do the analysis.
+- [ ] **Study:** Review Alpaca Skills repo (https://github.com/alpacahq/alpaca-skills) — identify which SKILL.md files to adopt for backtesting, execution, money precision
 - **Benjamin session:** Walk through the codebase together, explain the architecture
 
 ### Week 3-4: Statistics engine + first backtest
 - [ ] Build `scripts/stats_engine.py` (t-test, bootstrap, permutation, walk-forward)
-- [ ] Build `scripts/backtester.py` using Alpaca Skills methodology
+- [ ] Build `scripts/backtester.py` using Alpaca Skills methodology (borrow their guardrails, don't reinvent)
+- [ ] Borrow standard return/yield calculations from numpy/pandas (industry standard, not DIY)
 - [ ] Implement Strategy A: Momentum (simplest hypothesis)
 - [ ] Run full backtest on momentum, review results honestly
 - [ ] Document: does momentum survive out-of-sample? Record in research memory
@@ -30,18 +33,20 @@
 
 ## Month 2 (Oct 2026): Multiple Strategies + The Skeptic
 
-### Week 5-6: More strategies
+### Week 5-6: More strategies + borrow standard methodology
 - [ ] Implement Strategy B: Mean Reversion (RSI + Bollinger)
 - [ ] Implement Strategy C: Post-Earnings Drift
+- [ ] **Study:** Review event study methodology from FinResearch-Agent and academic references — use statsmodels for standard event-study framework rather than inventing our own
 - [ ] Implement Strategy D: Macro Regime filter
 - [ ] Backtest each independently
 - **Benjamin session:** Review results together, discuss which look real vs noise
 
 ### Week 7-8: Build the Skeptic
 - [ ] Build `scripts/skeptic.py` — automated kill criteria
+- [ ] **Study:** Review quant-agent's "10-invariant safety system" and deterministic risk filters — borrow what's proven
 - [ ] Run all strategies through the Skeptic
 - [ ] Build the Gatekeeper — promotion criteria for paper trading
-- [ ] Create research memory tables in DuckDB
+- [ ] Create research memory tables in DuckDB (schema inspired by Alpha-Agent's knowledge base)
 - [ ] Record all experiment results and lessons
 
 **Month 2 deliverable:** Multiple strategies tested, filtered, documented. Clear answer: "which (if any) survive scrutiny?"
@@ -59,9 +64,12 @@
 
 ### Week 11-12: First agent prototype
 - [ ] Set up smolagents (HuggingFace) as orchestration layer
+- [ ] **Study:** HuggingFace Agents Course (https://huggingface.co/learn/agents-course) — reference while building, not cover-to-cover
+- [ ] **Study:** Review TradingAgents multi-agent architecture — how they handle agent communication and structured outputs
 - [ ] Build Scout agent — daily anomaly scan
 - [ ] Build simple Governor — weekly review of what worked/didn't
 - [ ] Connect agents to DuckDB research memory
+- [ ] Use HF pretrained models for financial sentiment/NER (don't train our own)
 - [ ] First end-to-end agent loop: Scout finds anomaly -> Skeptic tests it -> Governor decides next step
 
 **Month 3 deliverable:** Paper trading running daily. First agent-driven research cycle complete.
@@ -74,14 +82,16 @@
 - [ ] Build Context/Regime agent — classifies current market environment
 - [ ] Build Feature Miner agent — proposes new features to test
 - [ ] Improve Skeptic with stronger statistical tests
-- [ ] Add execution realism (slippage sensitivity, spread analysis)
+- [ ] Add execution realism — borrow slippage/spread modeling from Magents (LLMQuant) rather than building from scratch
+- [ ] **Study:** Review QuantDinger's research-to-execution boundary for audit log patterns
 - **Benjamin session:** Review first month of paper trading results
 
 ### Week 15-16: Self-improvement loop
 - [ ] Build Experimenter agent — formal experiment design and execution
+- [ ] **Study:** Review quant-agent's quarterly meta-reflector — how it proposes prompt/parameter changes safely
 - [ ] Connect Governor to research memory — learns from past failures
 - [ ] First quarterly meta-review: what worked, what failed, what to investigate next
-- [ ] Evaluate: do we need additional data? (Unusual Whales trial, Massive)
+- [ ] Evaluate: do we need additional data? (Unusual Whales trial, Massive) — ONLY if research identifies a specific hypothesis that needs it
 
 **Month 4 deliverable:** Full 6-agent research loop running. System proposes hypotheses, tests them, filters survivors, and learns from results.
 
