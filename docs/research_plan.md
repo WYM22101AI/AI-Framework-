@@ -177,6 +177,170 @@ Use established libraries/projects for industry-standard calculations:
 
 ---
 
+## Reference Governance: How We Leverage External Knowledge
+
+### Levels of leveraging (from lightest to heaviest)
+
+| Level | What | Goes in our repo? | Example |
+|-------|------|-------------------|---------|
+| **Study** | Read architecture/design ideas | No (record notes in `docs/references/`) | TradingAgents agent separation pattern |
+| **Adapt** | Take a prompt/workflow idea, rewrite it | Yes (our own code) | Agent role definitions inspired by quant-agent |
+| **Install** | Use as a pip dependency | No (declared in requirements.txt) | smolagents, scipy, pandas |
+| **Download** | Cache a model locally | No (lives in ~/.cache or model dir) | HF financial sentiment model |
+| **Vendor** | Copy a specific component (with license) | Yes (with provenance) | A transaction-cost module |
+| **Clone wholesale** | Copy an entire project | **NEVER** | |
+
+### What lives WHERE
+
+**In our Git repository (we own this):**
+```
+agents/          Our agent definitions (Scout, Skeptic, etc.)
+scripts/         Our feature engine, stats, backtester
+research/        Our methodology rules, experiment protocols
+docs/references/ Notes on what we studied and borrowed
+```
+
+**In requirements.txt (installed, not committed):**
+```
+smolagents, scipy, statsmodels, pandas, alpaca-trade-api, fredapi
+```
+
+**In local cache (not in Git, not in repo):**
+```
+~/.cache/huggingface/    Downloaded HF models
+```
+
+**NOT in our repo:**
+```
+Cloned copies of TradingAgents, quant-agent, etc.
+Other people's complete projects
+```
+
+### Reference documentation format
+
+For each external resource we study, create a file in `docs/references/`:
+
+```markdown
+# [Project Name]
+
+Source: [URL]
+Commit/version reviewed: [SHA or version]
+Date reviewed: [date]
+License: [MIT/Apache/etc.]
+
+## What we learned
+- ...
+
+## What we borrowed (if anything)
+- ...
+
+## Our implementation
+- ...
+```
+
+This gives us a **research bibliography for software architecture** — we know exactly where ideas came from and can reproduce the environment.
+
+### Pin everything
+
+For reproducibility, always record:
+- GitHub repos: commit SHA + date
+- HF models: model name + revision
+- Alpaca Skills: commit/version
+- Python packages: pinned versions in requirements.txt
+
+If a backtest says "this strategy works," we need to reproduce the exact environment that produced that result.
+
+---
+
+## Target Project Structure
+
+Where we're heading (not all at once — grows over the 6-month timeline):
+
+```
+family-quant-ai/
+|
+|-- config.py                    # Central settings
+|-- update_market_data.py        # Daily data pipeline orchestrator
+|-- requirements.txt             # Pinned dependencies
+|-- .env / .env.example          # API keys (gitignored / template)
+|
+|-- scripts/                     # Data fetchers + engines (Phase 1-2)
+|   |-- market_fetcher.py
+|   |-- fred_fetcher.py
+|   |-- earnings_fetcher.py
+|   |-- sec_fetcher.py
+|   |-- options_fetcher.py
+|   |-- news_fetcher.py
+|   |-- storage.py
+|   |-- feature_engine.py
+|   |-- stats_engine.py          # Statistical tests (Phase 3)
+|   |-- backtester.py            # Backtest engine (Phase 4)
+|   |-- signal_generator.py      # Strategy signals (Phase 5)
+|   |-- skeptic.py               # Kill bad ideas (Phase 6)
+|   |-- strategy_filter.py       # Gatekeeper (Phase 6)
+|   +-- paper_trader.py          # Alpaca paper execution (Phase 7)
+|
+|-- agents/                      # AI agent definitions (Phase 7-8)
+|   |-- scout.py                 # Anomaly detection
+|   |-- context.py               # Regime classification
+|   |-- feature_miner.py         # Propose new features
+|   |-- skeptic_agent.py         # Orchestrates stats_engine
+|   |-- experimenter.py          # Designs and runs experiments
+|   |-- gatekeeper.py            # Promotion decisions
+|   +-- governor.py              # Research agenda
+|
+|-- research/                    # Our methodology (our IP)
+|   |-- methodology.md           # Validation rules
+|   |-- experiment_protocol.md   # How we run experiments
+|   +-- anti_leakage_rules.md    # Preventing look-ahead bias
+|
+|-- data/                        # Local DuckDB + generated data (gitignored)
+|   +-- market_data.duckdb
+|
+|-- notebooks/                   # Interactive exploration
+|   +-- exploration.ipynb
+|
+|-- docs/                        # Documentation
+|   |-- research_plan.md         # This document
+|   |-- timeline.md              # Project timeline
+|   |-- project_log.md           # Session history
+|   |-- learning_roadmap.md      # Educational resources
+|   +-- references/              # External knowledge bibliography
+|       |-- tradingagents.md
+|       |-- quant-agent.md
+|       |-- alpha-agent.md
+|       |-- magents.md
+|       |-- finresearch-agent.md
+|       |-- alpaca-skills.md
+|       +-- huggingface-smolagents.md
+|
+|-- skills/                      # Adopted skill definitions (Phase 7)
+|   |-- alpaca/                  # From Alpaca Skills repo (pinned version)
+|   +-- research/                # Our own research methodology skill
+|
++-- archive/                     # Old experimental scripts
+```
+
+### What's OURS vs what's BORROWED
+
+```
+OURS (our edge, our IP):
+  agents/*           - How we define research agents
+  research/*         - Our validation methodology
+  scripts/skeptic.py - Our kill criteria
+  scripts/feature_engine.py - Our feature definitions
+  data/              - Our accumulated research results
+  skills/research/   - Our research methodology skill
+
+BORROWED (standard, don't reinvent):
+  requirements.txt deps  - smolagents, scipy, pandas, etc.
+  skills/alpaca/         - Alpaca's proven trading mechanics
+  scripts/stats_engine.py - Built on scipy/statsmodels (standard tests)
+  Return/yield formulas  - numpy (industry standard math)
+```
+
+---
+
 ## Phase Overview
 
 ```
