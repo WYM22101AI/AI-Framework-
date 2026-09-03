@@ -85,6 +85,85 @@ update_market_data.py          (orchestrator - runs all 6 fetchers)
 
 ---
 
+## Session 3: Feature Engine + Stats Engine + Backtester + First Strategy (2026-08-28)
+
+### What we did
+- Completed Phase 2: expanded feature_engine.py with regime, fundamental, and event features
+- Completed Phase 3: built stats_engine.py (the Skeptic's toolbox)
+- Completed Phase 4: built backtester.py with proper methodology
+- Completed Phase 5 (partial): implemented 3 strategies, ran first backtest
+- Hit Month 1 milestone: first strategy fully backtested with statistics
+
+### Feature engine (19 features per stock per day)
+- Technical: returns (1d/5d/20d/60d), volatility, RSI-14, Bollinger position, MA distances, relative volume, relative strength vs SPY
+- Regime: VIX, VIX 5d change, Fed funds rate, 10-year Treasury yield
+- Fundamental: days since earnings, last EPS surprise
+- Event: earnings within 7 days flag
+- Stored in DuckDB `daily_features` table (3,996 rows)
+
+### Statistics engine (6 tests)
+- t-test (is mean return != 0?)
+- Bootstrap confidence interval (10,000 samples)
+- Permutation test (5,000 shuffles)
+- Walk-forward validation (5-fold sequential)
+- Multiple testing correction (Holm/Bonferroni/BH)
+- Economic significance (survives transaction costs?)
+- `full_skeptic_report()` runs all 5 and returns PASS/WEAK/FAIL
+
+### Backtester design
+- Entry at next day's OPEN (not today's close — avoids look-ahead)
+- 5 bps round-trip transaction cost
+- In-sample (pre-2023) vs out-of-sample (2023+) split
+- Overfitting detection: warns if IS Sharpe >> OOS Sharpe
+- SPY buy-and-hold benchmark comparison
+
+### First strategy result: MOMENTUM on TSLA — REJECTED
+
+| Period | Return | Sharpe | Drawdown |
+|--------|--------|--------|----------|
+| In-sample | +11.7%/yr | 0.48 | -47.5% |
+| Out-of-sample | -28.9%/yr | -0.68 | -77.0% |
+
+Skeptic verdict: **FAIL (0/5 tests passed)**. Overfitting warning triggered.
+This is the system working as designed — rejecting a strategy that doesn't hold up.
+
+### Strategies coded (ready to test)
+- Strategy A: Momentum (tested, rejected)
+- Strategy B: Mean Reversion (RSI + Bollinger) — coded, not yet tested
+- Strategy C: Post-Earnings Drift — coded, not yet tested
+
+### Design decisions incorporated (from ChatGPT discussions)
+- 6-agent architecture: Governor, Scout, Context/Regime, Skeptic, Experimenter, Gatekeeper
+- Three-layer separation: Ground truth (Alpaca Skills) / Research assumptions (ours) / Secret sauce (filtering)
+- Reference governance: study don't clone, borrow engineering build research
+- Data source roadmap: use free sources now, add paid only when research proves need
+- HuggingFace smolagents as future agent orchestration framework
+- Research memory database schema (hypotheses, experiments, results, lessons)
+
+### Project documentation created
+- `docs/research_plan.md` — master architecture (6 agents, build-vs-borrow, data roadmap)
+- `docs/timeline.md` — 6-month roadmap with weekly tasks
+- `docs/tracker.md` — task-level progress tracker (36/70 = 51%)
+- `docs/knowledge_library.md` — complete handover document
+- `docs/project_log.md` — this file
+
+### Progress: 36/70 tasks (51%)
+```
+Phase 1: Data Foundation       [================] 88%
+Phase 2: Feature Engineering   [================] 100%
+Phase 3: Statistics Engine     [================] 100%
+Phase 4: Backtesting Engine    [================] 100%
+Phase 5: Signal Generation     [======          ] 50%
+```
+
+### Next session priorities
+1. Run mean_reversion and earnings_drift through Skeptic
+2. Test strategies across multiple stocks (AAPL, NVDA), not just TSLA
+3. Begin Phase 6: formal Skeptic + Gatekeeper automation
+4. Study reference repos (TradingAgents, quant-agent) for architecture ideas
+
+---
+
 ## Learning Resources (from original README)
 
 See `docs/learning_roadmap.md` for the full 5-phase learning path:

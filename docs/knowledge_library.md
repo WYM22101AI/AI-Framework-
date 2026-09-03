@@ -79,10 +79,11 @@ family-quant-ai/
 |   |-- options_fetcher.py     # Alpaca options (BROKEN - needs fix)
 |   |-- news_fetcher.py        # Alpaca news headlines
 |   |-- storage.py             # DuckDB table creation and upsert operations
-|   |-- feature_engine.py      # Computes technical features from price data
-|   |-- signal_generator.py    # Placeholder: Phase 5
-|   |-- backtester.py          # Placeholder: Phase 4
-|   |-- strategy_filter.py     # Placeholder: Phase 5
+|   |-- feature_engine.py      # Computes 19 daily features (technical + regime + fundamental)
+|   |-- stats_engine.py        # Statistical tests: t-test, bootstrap, permutation, walk-forward
+|   |-- signal_generator.py    # Strategy definitions: momentum, mean_reversion, earnings_drift
+|   |-- backtester.py          # Full backtest engine with Skeptic integration
+|   |-- strategy_filter.py     # Placeholder: Phase 6
 |   +-- __init__.py
 |
 |-- data/
