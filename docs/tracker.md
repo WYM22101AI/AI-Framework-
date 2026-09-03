@@ -1,7 +1,7 @@
 # Project Tracker: Family Quant AI
 
 **Last updated:** 2026-08-28
-**Status:** Phase 1 & 2 complete, Phase 3 next
+**Status:** Phases 1-3 complete, Phase 4 next
 
 ---
 
@@ -53,16 +53,16 @@
 
 ---
 
-## Phase 3: Statistics Engine — NOT STARTED
+## Phase 3: Statistics Engine — COMPLETE
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| 3.1 | t-test for mean return significance | Pending | Use scipy.stats |
-| 3.2 | Bootstrap confidence intervals | Pending | |
-| 3.3 | Permutation test (shuffle-based significance) | Pending | |
-| 3.4 | Walk-forward validation | Pending | Rolling out-of-sample splits |
-| 3.5 | Multiple testing correction (Holm/BH) | Pending | Prevent data snooping |
-| 3.6 | Economic significance check (survives costs?) | Pending | |
+| 3.1 | t-test for mean return significance | Done | scipy.stats.ttest_1samp |
+| 3.2 | Bootstrap confidence intervals | Done | 10,000 samples, 95% CI |
+| 3.3 | Permutation test (shuffle-based significance) | Done | 5,000 permutations |
+| 3.4 | Walk-forward validation | Done | 5-fold sequential split |
+| 3.5 | Multiple testing correction (Holm/BH) | Done | Holm, Bonferroni, Benjamini-Hochberg |
+| 3.6 | Economic significance check (survives costs?) | Done | Gross vs net after transaction costs |
 
 ---
 
@@ -166,7 +166,7 @@
 ```
 Phase 1: Data Foundation       [================] 14/16 tasks (88%)
 Phase 2: Feature Engineering   [================]  7/7  tasks (100%)
-Phase 3: Statistics Engine     [                ]  0/6  tasks
+Phase 3: Statistics Engine     [================]  6/6  tasks (100%)
 Phase 4: Backtesting Engine    [                ]  0/6  tasks
 Phase 5: Signal Generation     [                ]  0/6  tasks
 Phase 6: Skeptic + Gatekeeper  [                ]  0/5  tasks
@@ -174,7 +174,7 @@ Phase 7: Paper Trading         [                ]  0/5  tasks
 Phase 8: Agent Research Loop   [                ]  0/11 tasks
 Cross-cutting                  [                ]  0/8  tasks
 
-Overall: 21/70 tasks complete (30%)
+Overall: 27/70 tasks complete (39%)
 ```
 
 ---
