@@ -1,7 +1,7 @@
 # Project Tracker: Family Quant AI
 
 **Last updated:** 2026-08-28
-**Status:** Phases 1-3 complete, Phase 4 next
+**Status:** Phases 1-4 complete, first strategy tested and REJECTED by Skeptic
 
 ---
 
@@ -66,26 +66,26 @@
 
 ---
 
-## Phase 4: Backtesting Engine — NOT STARTED
+## Phase 4: Backtesting Engine — COMPLETE
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| 4.1 | Backtest framework (entry at next open, include costs) | Pending | Adopt Alpaca Skills methodology |
-| 4.2 | Performance metrics (Sharpe, drawdown, win rate, p-value) | Pending | |
-| 4.3 | Walk-forward split (train 2016-2022, test 2023-2026) | Pending | |
-| 4.4 | Execution realism (slippage, spread sensitivity) | Pending | |
-| 4.5 | Comparison vs SPY buy-and-hold benchmark | Pending | |
-| 4.6 | Overfitting detection (in-sample vs out-of-sample gap) | Pending | |
+| 4.1 | Backtest framework (entry at next open, include costs) | Done | Next-day open execution, 5 bps round-trip cost |
+| 4.2 | Performance metrics (Sharpe, drawdown, win rate, p-value) | Done | 10 metrics computed |
+| 4.3 | Walk-forward split (train 2016-2022, test 2023-2026) | Done | split_date parameter, IS vs OOS |
+| 4.4 | Execution realism (slippage, spread sensitivity) | Done | Configurable cost_per_trade |
+| 4.5 | Comparison vs SPY buy-and-hold benchmark | Done | Included in every report |
+| 4.6 | Overfitting detection (in-sample vs out-of-sample gap) | Done | Warns if IS Sharpe >> OOS Sharpe |
 
 ---
 
-## Phase 5: Signal Generation (Scout) — NOT STARTED
+## Phase 5: Signal Generation (Scout) — IN PROGRESS
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| 5.1 | Strategy A: Momentum (20d return + MA50 + relative strength) | Pending | Simplest hypothesis |
-| 5.2 | Strategy B: Mean Reversion (RSI + Bollinger) | Pending | |
-| 5.3 | Strategy C: Post-Earnings Drift | Pending | Needs earnings dates + price data |
+| 5.1 | Strategy A: Momentum (20d return + MA50 + relative strength) | Done | **REJECTED by Skeptic: 0/5 tests passed. OOS Sharpe -0.68** |
+| 5.2 | Strategy B: Mean Reversion (RSI + Bollinger) | Done | Code ready, not yet tested |
+| 5.3 | Strategy C: Post-Earnings Drift | Done | Code ready, not yet tested |
 | 5.4 | Strategy D: Macro Regime filter | Pending | Needs regime features |
 | 5.5 | Strategy E: Earnings Straddle (event-driven) | Pending | Needs options data working |
 | 5.6 | Signal output table in DuckDB | Pending | |
@@ -167,14 +167,14 @@
 Phase 1: Data Foundation       [================] 14/16 tasks (88%)
 Phase 2: Feature Engineering   [================]  7/7  tasks (100%)
 Phase 3: Statistics Engine     [================]  6/6  tasks (100%)
-Phase 4: Backtesting Engine    [                ]  0/6  tasks
-Phase 5: Signal Generation     [                ]  0/6  tasks
+Phase 4: Backtesting Engine    [================]  6/6  tasks (100%)
+Phase 5: Signal Generation     [======          ]  3/6  tasks (50%)
 Phase 6: Skeptic + Gatekeeper  [                ]  0/5  tasks
 Phase 7: Paper Trading         [                ]  0/5  tasks
 Phase 8: Agent Research Loop   [                ]  0/11 tasks
 Cross-cutting                  [                ]  0/8  tasks
 
-Overall: 27/70 tasks complete (39%)
+Overall: 36/70 tasks complete (51%)
 ```
 
 ---
