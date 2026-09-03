@@ -26,6 +26,32 @@ def init_db(db_path: str) -> duckdb.DuckDBPyConnection:
     """)
 
     conn.execute("""
+        CREATE TABLE IF NOT EXISTS daily_features (
+            symbol TEXT,
+            date DATE,
+            return_1d DOUBLE,
+            return_5d DOUBLE,
+            return_20d DOUBLE,
+            return_60d DOUBLE,
+            volatility_20d DOUBLE,
+            distance_from_ma50 DOUBLE,
+            distance_from_ma200 DOUBLE,
+            rsi_14 DOUBLE,
+            relative_volume DOUBLE,
+            bollinger_position DOUBLE,
+            relative_strength_vs_spy DOUBLE,
+            vix DOUBLE,
+            vix_change_5d DOUBLE,
+            fed_funds DOUBLE,
+            treasury_10y DOUBLE,
+            days_since_earnings INT,
+            last_eps_surprise DOUBLE,
+            earnings_within_7d BOOLEAN,
+            PRIMARY KEY (symbol, date)
+        )
+    """)
+
+    conn.execute("""
         CREATE TABLE IF NOT EXISTS macro_releases (
             series_id TEXT,
             observation_date DATE,

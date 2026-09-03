@@ -1,7 +1,7 @@
 # Project Tracker: Family Quant AI
 
-**Last updated:** 2026-08-25
-**Status:** Phase 1 complete, Phase 2 partially complete
+**Last updated:** 2026-08-28
+**Status:** Phase 1 & 2 complete, Phase 3 next
 
 ---
 
@@ -39,17 +39,17 @@
 
 ---
 
-## Phase 2: Feature Engineering — IN PROGRESS
+## Phase 2: Feature Engineering — COMPLETE
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| 2.1 | Technical features (returns, volatility, RSI, Bollinger, MA distances) | Done | feature_engine.py tested, 3,987 rows for 3 stocks |
+| 2.1 | Technical features (returns, volatility, RSI, Bollinger, MA distances) | Done | feature_engine.py |
 | 2.2 | Relative strength vs SPY | Done | Included in feature_engine.py |
-| 2.3 | Store features in DuckDB `daily_features` table | **Pending** | Feature engine runs but doesn't persist to DB yet |
-| 2.4 | Regime features (VIX level, yield curve, Fed direction) | **Pending** | FRED data available, need to join into features |
-| 2.5 | Fundamental features (days since earnings, EPS surprise) | **Pending** | Earnings data available, need to join into features |
-| 2.6 | Event features (earnings within 7 days flag) | **Pending** | Needs earnings calendar dates |
-| 2.7 | Feature visualization notebook | **Partial** | exploration.ipynb exists but doesn't show features yet |
+| 2.3 | Store features in DuckDB `daily_features` table | Done | 3,996 rows persisted with upsert |
+| 2.4 | Regime features (VIX level, yield curve, Fed direction) | Done | VIX, VIX 5d change, Fed funds, 10Y Treasury |
+| 2.5 | Fundamental features (days since earnings, EPS surprise) | Done | days_since_earnings, last_eps_surprise |
+| 2.6 | Event features (earnings within 7 days flag) | Done | earnings_within_7d boolean |
+| 2.7 | Feature visualization notebook | Done | 6 technical charts + 4 regime charts + earnings bar chart |
 
 ---
 
@@ -165,7 +165,7 @@
 
 ```
 Phase 1: Data Foundation       [================] 14/16 tasks (88%)
-Phase 2: Feature Engineering   [===             ]  2/7  tasks (29%)
+Phase 2: Feature Engineering   [================]  7/7  tasks (100%)
 Phase 3: Statistics Engine     [                ]  0/6  tasks
 Phase 4: Backtesting Engine    [                ]  0/6  tasks
 Phase 5: Signal Generation     [                ]  0/6  tasks
@@ -174,7 +174,7 @@ Phase 7: Paper Trading         [                ]  0/5  tasks
 Phase 8: Agent Research Loop   [                ]  0/11 tasks
 Cross-cutting                  [                ]  0/8  tasks
 
-Overall: 16/70 tasks complete (23%)
+Overall: 21/70 tasks complete (30%)
 ```
 
 ---
