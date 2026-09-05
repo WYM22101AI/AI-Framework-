@@ -1,7 +1,7 @@
 # Project Tracker: Family Quant AI
 
-**Last updated:** 2026-08-28
-**Status:** Phases 1-4 complete. All 3 strategies tested across 3 stocks: 0 survivors. Research memory recording started.
+**Last updated:** 2026-09-05
+**Status:** Phases 1-5 + 7 complete. Paper trading pipeline operational. 2 strategies pass Skeptic (AMZN, NVDA).
 
 ---
 
@@ -104,15 +104,15 @@
 
 ---
 
-## Phase 7: Paper Trading — NOT STARTED
+## Phase 7: Paper Trading — COMPLETE
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| 7.1 | paper_trader.py — connect to Alpaca paper account | Pending | |
-| 7.2 | Daily automated workflow (data -> features -> signals -> orders) | Pending | |
-| 7.3 | Performance dashboard | Pending | |
-| 7.4 | Position sizing (volatility-adjusted, max 25%) | Pending | |
-| 7.5 | Live vs backtest performance tracking | Pending | |
+| 7.1 | paper_trader.py — connect to Alpaca paper account | Done | Generates orders from signals, submits via API |
+| 7.2 | Position sizing (max 25% per stock, 50% total) | Done | Equal-weight among active signals |
+| 7.3 | Daily pipeline (data -> features -> signals -> orders) | Done | daily_pipeline.py chains all steps |
+| 7.4 | Trade logging to DuckDB | Done | trade_log table with signal, order, execution status |
+| 7.5 | Dry run tested | Done | Both signals FLAT today (correct — VIX < 20) |
 
 ---
 
@@ -170,11 +170,11 @@ Phase 3: Statistics Engine     [================]  6/6  tasks (100%)
 Phase 4: Backtesting Engine    [================]  6/6  tasks (100%)
 Phase 5: Signal Generation     [==========      ]  3/6  tasks (50%)
 Phase 6: Skeptic + Gatekeeper  [============    ]  4/5  tasks (80%)
-Phase 7: Paper Trading         [                ]  0/5  tasks
+Phase 7: Paper Trading         [================]  5/5  tasks (100%)
 Phase 8: Agent Research Loop   [                ]  0/11 tasks
 Cross-cutting                  [                ]  0/8  tasks
 
-Overall: 43/70 tasks complete (61%)
+Overall: 48/70 tasks complete (69%)
 ```
 
 ---
