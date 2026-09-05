@@ -32,7 +32,21 @@ SEC_USER_AGENT = "FamilyQuantAI yamingwang@gmail.com"
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "market_data.duckdb")
 
 # Tickers to track
-TICKERS = ["TSLA", "AAPL", "NVDA", "SPY"]
+# Core universe: liquid, high-volume stocks across sectors + SPY benchmark
+TICKERS = [
+    # Tech
+    "TSLA", "AAPL", "NVDA", "MSFT", "META", "AMZN", "GOOG", "AMD",
+    # Finance
+    "JPM", "GS",
+    # Healthcare
+    "JNJ", "UNH",
+    # Consumer
+    "WMT", "HD",
+    # Energy
+    "XOM",
+    # Benchmark (not traded, used for relative strength)
+    "SPY",
+]
 
 # How far back to fetch on first run (years)
 LOOKBACK_YEARS = 10
