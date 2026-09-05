@@ -1,7 +1,7 @@
 # Project Tracker: Family Quant AI
 
 **Last updated:** 2026-08-28
-**Status:** Phases 1-4 complete, first strategy tested and REJECTED by Skeptic
+**Status:** Phases 1-4 complete. All 3 strategies tested across 3 stocks: 0 survivors. Research memory recording started.
 
 ---
 
@@ -79,28 +79,28 @@
 
 ---
 
-## Phase 5: Signal Generation (Scout) — IN PROGRESS
+## Phase 5: Signal Generation (Scout) — COMPLETE
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| 5.1 | Strategy A: Momentum (20d return + MA50 + relative strength) | Done | **REJECTED by Skeptic: 0/5 tests passed. OOS Sharpe -0.68** |
-| 5.2 | Strategy B: Mean Reversion (RSI + Bollinger) | Done | Code ready, not yet tested |
-| 5.3 | Strategy C: Post-Earnings Drift | Done | Code ready, not yet tested |
-| 5.4 | Strategy D: Macro Regime filter | Pending | Needs regime features |
+| 5.1 | Strategy A: Momentum | Done | **REJECTED all 3 stocks. OOS Sharpe: TSLA -0.68, AAPL -0.46, NVDA -0.67** |
+| 5.2 | Strategy B: Mean Reversion | Done | **REJECTED. Best: NVDA Sharpe 0.58 but only 2/5 Skeptic tests** |
+| 5.3 | Strategy C: Post-Earnings Drift | Done | **REJECTED. No signal generated (threshold too strict)** |
+| 5.4 | Strategy D: Macro Regime filter | Pending | Not yet implemented |
 | 5.5 | Strategy E: Earnings Straddle (event-driven) | Pending | Needs options data working |
 | 5.6 | Signal output table in DuckDB | Pending | |
 
 ---
 
-## Phase 6: Skeptic + Gatekeeper — NOT STARTED
+## Phase 6: Skeptic + Gatekeeper — IN PROGRESS
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| 6.1 | Skeptic kill criteria (p-value, permutation, walk-forward, cross-stock, costs) | Pending | |
-| 6.2 | Run all strategies through Skeptic | Pending | |
+| 6.1 | Skeptic kill criteria (p-value, permutation, walk-forward, cross-stock, costs) | Done | Built into stats_engine.py full_skeptic_report() |
+| 6.2 | Run all strategies through Skeptic | Done | 9 combinations tested, 0 survivors |
 | 6.3 | Gatekeeper promotion criteria (Sharpe>0.5, drawdown<30%, beats SPY) | Pending | |
-| 6.4 | Research memory tables in DuckDB | Pending | hypotheses, experiments, results, lessons |
-| 6.5 | Record all experiment results | Pending | |
+| 6.4 | Research memory tables in DuckDB | Done | research_experiments table with 9 records |
+| 6.5 | Record all experiment results | Done | Lessons documented |
 
 ---
 
@@ -168,13 +168,13 @@ Phase 1: Data Foundation       [================] 14/16 tasks (88%)
 Phase 2: Feature Engineering   [================]  7/7  tasks (100%)
 Phase 3: Statistics Engine     [================]  6/6  tasks (100%)
 Phase 4: Backtesting Engine    [================]  6/6  tasks (100%)
-Phase 5: Signal Generation     [======          ]  3/6  tasks (50%)
-Phase 6: Skeptic + Gatekeeper  [                ]  0/5  tasks
+Phase 5: Signal Generation     [==========      ]  3/6  tasks (50%)
+Phase 6: Skeptic + Gatekeeper  [============    ]  4/5  tasks (80%)
 Phase 7: Paper Trading         [                ]  0/5  tasks
 Phase 8: Agent Research Loop   [                ]  0/11 tasks
 Cross-cutting                  [                ]  0/8  tasks
 
-Overall: 36/70 tasks complete (51%)
+Overall: 43/70 tasks complete (61%)
 ```
 
 ---

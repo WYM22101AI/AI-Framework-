@@ -114,7 +114,7 @@ def walk_forward_test(signal: pd.Series, returns: pd.Series, n_folds: int = 5) -
     aligned = aligned[aligned["signal"] != 0]
 
     if len(aligned) < n_folds * 20:
-        return {"folds": [], "consistent": False, "n": len(aligned)}
+        return {"folds": [], "consistent": False, "n": len(aligned), "positive_folds": 0, "total_folds": n_folds}
 
     fold_size = len(aligned) // n_folds
     folds = []

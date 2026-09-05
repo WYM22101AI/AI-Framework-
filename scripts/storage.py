@@ -25,6 +25,27 @@ def init_db(db_path: str) -> duckdb.DuckDBPyConnection:
         )
     """)
 
+    # Research memory tables
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS research_experiments (
+            experiment_id TEXT PRIMARY KEY,
+            strategy TEXT,
+            symbol TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            split_date DATE,
+            is_annualized_return DOUBLE,
+            is_sharpe DOUBLE,
+            oos_annualized_return DOUBLE,
+            oos_sharpe DOUBLE,
+            oos_max_drawdown DOUBLE,
+            skeptic_verdict TEXT,
+            skeptic_tests_passed INT,
+            beats_benchmark BOOLEAN,
+            overfit_warning BOOLEAN,
+            notes TEXT
+        )
+    """)
+
     conn.execute("""
         CREATE TABLE IF NOT EXISTS daily_features (
             symbol TEXT,
