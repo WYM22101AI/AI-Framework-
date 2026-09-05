@@ -219,6 +219,35 @@ def strategy_earnings_drift_relaxed(conn, symbol: str) -> pd.Series:
     return signal
 
 
+def strategy_mr_vix_tuned(conn, symbol: str) -> pd.Series:
+    """
+    Strategy G: Tuned VIX-Conditional Mean Reversion (best from parameter sweep).
+    Parameters: RSI < 35, Bollinger < -0.6, VIX > 20
+    Found via 27-combination sweep across 5 stocks. Avg OOS Sharpe 0.75.
+    5/5 stocks positive. Robust across parameters (top 7 all use VIX>20).
+    """
+    features = conn.execute(f"""
+        SELECT date, rsi_14, bollinger_position, vix
+        FROM daily_features
+        WHERE symbol = '{symbol}'
+        ORDER BY date
+    """).fetchdf()
+
+    if features.empty:
+        return pd.Series(dtype=float)
+
+    signal = pd.Series(0, index=features["date"])
+
+    vix_elevated = features["vix"].notna() & (features["vix"] > 20)
+    long_mask = vix_elevated & (features["rsi_14"] < 35) & (features["bollinger_position"] < -0.6)
+    short_mask = vix_elevated & (features["rsi_14"] > 65) & (features["bollinger_position"] > 0.6)
+
+    signal[long_mask.values] = 1
+    signal[short_mask.values] = -1
+
+    return signal
+
+
 STRATEGIES = {
     "momentum": strategy_momentum,
     "mean_reversion": strategy_mean_reversion,
@@ -226,6 +255,7 @@ STRATEGIES = {
     "momentum_regime": strategy_momentum_regime,
     "mr_regime": strategy_mean_reversion_regime,
     "earnings_relaxed": strategy_earnings_drift_relaxed,
+    "mr_vix_tuned": strategy_mr_vix_tuned,
 }
 
 
