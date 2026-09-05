@@ -204,6 +204,60 @@ The system is working exactly as designed. The Skeptic's job is to kill bad idea
 
 ---
 
+## Session 5: Expanded Universe + Parameter Sweep + Paper Trading (2026-09-05)
+
+### What we did
+- Expanded ticker universe from 4 to 16 stocks (tech, finance, healthcare, consumer, energy)
+- Fetched 24,556 price rows, computed 20,034 feature rows for 15 stocks
+- Tested VIX-conditional mean reversion across all 15 stocks
+- Found first Skeptic PASS: AMZN (Sharpe 1.25, 4/5 tests)
+- Ran 27-parameter sweep (3 RSI x 3 Bollinger x 3 VIX thresholds)
+- Identified optimal parameters: RSI<35, Bollinger<-0.6, VIX>20
+- Tuned strategy: AMZN PASS (Sharpe 1.46), NVDA PASS (Sharpe 1.02)
+- Built complete paper trading pipeline (paper_trader.py + daily_pipeline.py)
+- Dry run tested: both signals FLAT (correct — VIX below 20)
+
+### Strategy results: Tuned VIX Mean Reversion (RSI<35, BB<-0.6, VIX>20)
+
+| Stock | OOS Sharpe | Verdict | Beats SPY |
+|-------|-----------|---------|-----------|
+| AMZN | 1.46 | PASS 4/5 | Yes |
+| NVDA | 1.02 | PASS 4/5 | Yes |
+| AMD | 0.62 | FAIL 1/5 | Yes |
+| TSLA | 0.52 | FAIL 1/5 | Yes |
+| MSFT | 0.15 | FAIL 1/5 | No |
+
+### Parameter sweep findings
+- VIX > 20 is essential (all top 7 variants use it)
+- VIX > 15 loses money (too many false signals in calm markets)
+- VIX > 25 has too few trades
+- Strategy works best on high-beta tech (AMZN, NVDA, AMD, TSLA)
+- Fails on defensive stocks (WMT, UNH, HD)
+
+### Paper trading setup
+- Approved stocks: AMZN, NVDA (Skeptic PASSes)
+- Position sizing: 25% max per stock, 50% total exposure
+- Daily pipeline: data -> features -> signals -> orders
+- Dry run vs execute mode (--execute flag)
+- Trade log table in DuckDB
+
+### Progress: 48/70 tasks (69%)
+```
+Phase 1-4: Complete
+Phase 5:   50% (3 strategies tested + 3 regime variants)
+Phase 6:   80% (Skeptic running, Gatekeeper criteria defined)
+Phase 7:   100% (paper trading pipeline operational)
+Phase 8:   0% (AI research agents — next major phase)
+```
+
+### Next session priorities
+1. Phase 8: Set up smolagents (HuggingFace) as agent orchestration
+2. Build Scout agent for daily anomaly detection
+3. Stress test the VIX mean reversion strategy (2x costs, remove best trades)
+4. Study reference repos (TradingAgents, quant-agent)
+
+---
+
 ## Learning Resources (from original README)
 
 See `docs/learning_roadmap.md` for the full 5-phase learning path:
