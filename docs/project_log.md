@@ -164,6 +164,46 @@ Phase 5: Signal Generation     [======          ] 50%
 
 ---
 
+## Session 4: All Strategies Tested — 0 Survivors (2026-08-28)
+
+### What we did
+- Ran all 3 strategies (momentum, mean reversion, earnings drift) across all 3 stocks (TSLA, AAPL, NVDA)
+- 9 total strategy-stock combinations tested through full Skeptic pipeline
+- Created research_experiments table in DuckDB (research memory)
+- Recorded all 9 experiment results with notes and lessons
+
+### Results: 0 out of 9 survived the Skeptic
+
+| Strategy | TSLA | AAPL | NVDA |
+|----------|------|------|------|
+| Momentum | FAIL 0/5 (Sharpe -0.68) | FAIL 0/5 (Sharpe -0.46) | FAIL 0/5 (Sharpe -0.67) |
+| Mean Reversion | FAIL 0/5 (Sharpe -0.65) | FAIL 1/5 (Sharpe 0.10) | FAIL 2/5 (Sharpe 0.58) |
+| Earnings Drift | FAIL 0/5 (no signal) | FAIL 0/5 (no signal) | FAIL 0/5 (no signal) |
+
+### Lessons learned
+1. Simple momentum fails badly out-of-sample on liquid US large-caps — the signal has been arbitraged away
+2. Mean reversion on NVDA shows a glimmer (Sharpe 0.58, -7% drawdown, 2/5 tests) — worth deeper investigation
+3. Earnings drift threshold (5%) is too strict — rarely triggers. Need to lower it or use different signal
+4. AAPL earnings data incomplete due to Alpha Vantage rate limiting — needs re-fetch
+5. **0 survivors is the expected honest result** — finding real edge requires more sophisticated hypotheses
+
+### Key insight
+The system is working exactly as designed. The Skeptic's job is to kill bad ideas. If basic textbook strategies survived, that would be suspicious — they've been known for decades and are heavily traded.
+
+### What this means for next steps
+- Need regime-conditional strategies (same signal works differently in different market environments)
+- Need combination strategies (momentum + regime filter, mean reversion + VIX condition)
+- Consider expanding the stock universe (50+ stocks may reveal cross-sectional patterns)
+- The AI research agent (Phase 8) becomes more important — need systematic hypothesis generation
+
+### Next session priorities
+1. Improve earnings drift (lower threshold, re-fetch AAPL)
+2. Add regime conditioning to existing strategies
+3. Explore combined strategies (momentum only when VIX < 20, mean reversion only when RSI extreme)
+4. Consider expanding universe
+
+---
+
 ## Learning Resources (from original README)
 
 See `docs/learning_roadmap.md` for the full 5-phase learning path:
