@@ -25,6 +25,30 @@ def init_db(db_path: str) -> duckdb.DuckDBPyConnection:
         )
     """)
 
+    # Agent memory tables
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS agent_log (
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            agent_name TEXT,
+            action TEXT,
+            context TEXT,
+            result TEXT,
+            regime TEXT
+        )
+    """)
+
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS agent_hypotheses (
+            id TEXT PRIMARY KEY,
+            created_by TEXT,
+            description TEXT,
+            status TEXT DEFAULT 'proposed',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            tested_at TIMESTAMP,
+            result TEXT
+        )
+    """)
+
     # Research memory tables
     conn.execute("""
         CREATE TABLE IF NOT EXISTS research_experiments (

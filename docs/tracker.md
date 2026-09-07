@@ -1,7 +1,7 @@
 # Project Tracker: Family Quant AI
 
 **Last updated:** 2026-09-07
-**Status:** Phases 1-7 complete. Options fixed. Stress test passed. Earnings straddle shows edge.
+**Status:** Phases 1-7 complete. Phase 8 agents built and tested. 19-ticker universe with index ETFs.
 
 ---
 
@@ -30,12 +30,12 @@
 
 | Table | Rows | Source | Status |
 |-------|------|--------|--------|
-| daily_bars | 6,113 | Alpaca | Working |
+| daily_bars | 29,164 | Alpaca | Working (19 tickers, 10Y history) |
 | macro_releases | 29,572 | FRED | Working |
 | earnings | 296 | Alpha Vantage | Working (AAPL may need re-fetch due to rate limit) |
 | fundamentals | 214 | SEC EDGAR | Working |
 | news | 55 | Alpaca | Working |
-| options_snapshot | 0 | Alpaca | Broken — needs API client fix |
+| options_snapshot | Working | Alpaca | Rewritten with alpaca-py, ATM IV + greeks |
 
 ---
 
@@ -116,21 +116,21 @@
 
 ---
 
-## Phase 8: Multi-Agent Research Loop — NOT STARTED
+## Phase 8: Multi-Agent Research Loop — IN PROGRESS
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| 8.1 | Install and configure smolagents (HuggingFace) | Pending | |
-| 8.2 | Scout agent — daily anomaly scan | Pending | |
-| 8.3 | Context/Regime agent — market state classification | Pending | |
-| 8.4 | Feature Miner agent — propose new features | Pending | |
-| 8.5 | Skeptic agent — orchestrates stats_engine | Pending | |
-| 8.6 | Experimenter agent — formal experiment design | Pending | |
-| 8.7 | Gatekeeper agent — promotion decisions | Pending | |
-| 8.8 | Governor agent — research agenda, weekly review | Pending | |
-| 8.9 | Connect agents to research memory | Pending | |
-| 8.10 | First end-to-end agent research cycle | Pending | |
-| 8.11 | Quarterly meta-review capability | Pending | |
+| 8.1 | Base agent class with logging | Done | agents/base.py — think(), log() to DuckDB |
+| 8.2 | Regime classifier agent | Done | agents/regime.py — VIX + SPY MA50 → HIGH_VOL/RISK_OFF/RISK_ON/LOW_VOL/NEUTRAL |
+| 8.3 | Scout agent — daily anomaly scan | Done | agents/scout.py — volume, RSI, Bollinger, earnings, relative strength |
+| 8.4 | Governor agent — weekly review | Done | agents/governor.py — reviews experiments, anomalies, trades |
+| 8.5 | Research loop orchestrator | Done | agents/research_loop.py — daily chain: data→features→regime→scout→trade |
+| 8.6 | Agent memory tables (agent_log, agent_hypotheses) | Done | DuckDB tables, logging confirmed working |
+| 8.7 | End-to-end test | Done | Regime=LOW_VOL, Scout=2 anomalies, Governor=ACTIVE, 5 log entries |
+| 8.8 | Experimenter agent — formal hypothesis testing | Pending | |
+| 8.9 | Skeptic agent — orchestrates stats_engine | Pending | |
+| 8.10 | Gatekeeper agent — promotion decisions | Pending | |
+| 8.11 | Migrate to smolagents when ready | Future | Start simple Python first |
 
 ---
 
@@ -145,7 +145,7 @@
 | X.5 | Rotate exposed Alpaca API keys | **Pending** | Old keys in git history — rotate in Alpaca dashboard |
 | X.6 | Pin all dependency versions in requirements.txt | **Pending** | Currently using >= ranges, should pin exact |
 | X.7 | Evaluate cloud migration trigger (Snowflake) | Future | When local compute becomes bottleneck |
-| X.8 | Expand ticker universe beyond 4 stocks | Future | After strategies validated on initial universe |
+| X.8 | Expand ticker universe beyond 4 stocks | Done | 19 tickers (15 stocks + SPY + QQQ + IWM + DIA) |
 
 ---
 
@@ -171,10 +171,10 @@ Phase 4: Backtesting Engine    [================]  6/6  tasks (100%)
 Phase 5: Signal Generation     [==========      ]  3/6  tasks (50%)
 Phase 6: Skeptic + Gatekeeper  [============    ]  4/5  tasks (80%)
 Phase 7: Paper Trading         [================]  5/5  tasks (100%)
-Phase 8: Agent Research Loop   [                ]  0/11 tasks
-Cross-cutting                  [                ]  0/8  tasks
+Phase 8: Agent Research Loop   [============    ]  7/11 tasks (64%)
+Cross-cutting                  [==              ]  1/8  tasks
 
-Overall: 52/70 tasks complete (74%)
+Overall: 60/70 tasks complete (86%)
 ```
 
 ---

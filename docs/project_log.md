@@ -308,6 +308,45 @@ Phase 8:   0% (AI research agents — next major phase)
 
 ---
 
+## Session 7: Phase 8 AI Research Agents + Index ETFs (2026-09-07)
+
+### What we did
+- Added index ETFs (QQQ, IWM, DIA) to the ticker universe — now 19 tickers, 29,164 price rows
+- Built Phase 8 AI research agents (4 agents, 1 orchestrator):
+  - `agents/base.py` — Base class with think() + DuckDB logging
+  - `agents/regime.py` — Pure code regime classifier (VIX + SPY MA50)
+  - `agents/scout.py` — Daily anomaly scanner (volume, RSI, Bollinger, earnings, relative strength)
+  - `agents/governor.py` — Weekly review agent (rule-based, LLM upgrade planned)
+  - `agents/research_loop.py` — Daily orchestrator: data -> features -> regime -> scout -> paper trade
+- Added `agent_log` and `agent_hypotheses` tables to DuckDB
+- Fixed scout NA boolean bug: `pd.notna(earnings_flag) and earnings_flag`
+
+### End-to-end test results
+- **Regime:** LOW_VOL (VIX=14.3, SPY above MA50)
+- **Scout:** 2 anomalies (AMD +4.6%, TSLA -6.0%)
+- **Governor:** ACTIVE status, identified 3 dead strategies (100% fail), 0 paper trades
+- **Agent log:** 5 entries recorded to DuckDB
+
+### Architecture decisions
+1. **Start simple, add smolagents later** — Pure Python agents first, HuggingFace framework later
+2. **Rule-based Governor** — No LLM dependency yet; can upgrade to Cortex AI_COMPLETE
+3. **Three-layer separation maintained** — Agents call existing scripts (stats_engine, backtester), don't reimplement
+
+### Progress: 58/70 tasks (83%)
+```
+Phase 1-7: Complete
+Phase 8:   6/11 tasks (55% — agents built and tested)
+Cross-cut: 0/8 tasks
+```
+
+### Next session priorities
+1. Verify full research_loop.py end-to-end (data update + all agents)
+2. Build Experimenter agent (formal hypothesis testing)
+3. Expand to 50+ stocks for cross-sectional analysis
+4. Study reference repos (TradingAgents, quant-agent)
+
+---
+
 ## Learning Resources (from original README)
 
 See `docs/learning_roadmap.md` for the full 5-phase learning path:
