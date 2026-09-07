@@ -127,9 +127,9 @@
 | 8.5 | Research loop orchestrator | Done | agents/research_loop.py — daily chain: data→features→regime→scout→trade |
 | 8.6 | Agent memory tables (agent_log, agent_hypotheses) | Done | DuckDB tables, logging confirmed working |
 | 8.7 | End-to-end test | Done | Regime=LOW_VOL, Scout=2 anomalies, Governor=ACTIVE, 5 log entries |
-| 8.8 | Experimenter agent — formal hypothesis testing | Pending | |
-| 8.9 | Skeptic agent — orchestrates stats_engine | Pending | |
-| 8.10 | Gatekeeper agent — promotion decisions | Pending | |
+| 8.8 | Experimenter agent — formal hypothesis testing | Done | agents/experimenter.py — runs backtest + records to research_experiments |
+| 8.9 | Skeptic agent — orchestrates stats_engine | Done | agents/skeptic.py — 5-gate evaluation (Sharpe, drawdown, trades, benchmark, overfit) |
+| 8.10 | Gatekeeper agent — promotion decisions | Done | agents/gatekeeper.py — portfolio-level checks + final APPROVE/REJECT |
 | 8.11 | Migrate to smolagents when ready | Future | Start simple Python first |
 
 ---
@@ -171,10 +171,10 @@ Phase 4: Backtesting Engine    [================]  6/6  tasks (100%)
 Phase 5: Signal Generation     [==========      ]  3/6  tasks (50%)
 Phase 6: Skeptic + Gatekeeper  [============    ]  4/5  tasks (80%)
 Phase 7: Paper Trading         [================]  5/5  tasks (100%)
-Phase 8: Agent Research Loop   [============    ]  7/11 tasks (64%)
+Phase 8: Agent Research Loop   [=============== ] 10/11 tasks (91%)
 Cross-cutting                  [==              ]  1/8  tasks
 
-Overall: 60/70 tasks complete (86%)
+Overall: 63/70 tasks complete (90%)
 ```
 
 ---
