@@ -160,7 +160,57 @@ Phase 5: Signal Generation     [======          ] 50%
 1. Run mean_reversion and earnings_drift through Skeptic
 2. Test strategies across multiple stocks (AAPL, NVDA), not just TSLA
 3. Begin Phase 6: formal Skeptic + Gatekeeper automation
-4. Study reference repos (TradingAgents, quant-agent) for architecture ideas
+4. Study reference repos (TradingAgents, quant-agent)
+
+---
+
+## Session 6: Options Fix + Stress Test + Earnings Straddle (2026-09-07)
+
+### What we did
+- Fixed options fetcher (task 1.11 — broken since Day 1): rewritten using alpaca-py OptionHistoricalDataClient
+- Now pulls ATM IV, put/call ratios, greeks for all tickers
+- Stress tested the VIX mean reversion strategy under adverse conditions
+- Built and ran earnings straddle analysis across 8 stocks (192 events)
+
+### Options fetcher (FIXED)
+- AMZN: IV 34.65%, P/C ratio 1.20
+- NVDA: IV 38.88%, P/C ratio 1.18
+- TSLA: IV 45.59%, P/C ratio 2.11 (heavy put positioning)
+
+### Stress test results: strategy is robust
+
+| Test | AMZN Sharpe | NVDA Sharpe |
+|------|-------------|-------------|
+| Base (5 bps) | 1.46 | 1.02 |
+| 2x costs (10 bps) | 1.39 | 0.98 |
+| 3x costs (15 bps) | 1.32 | 0.94 |
+| Remove best 5 trades | 1.17 | 0.19 |
+| Remove best 10 trades | 0.66 | -0.44 |
+| First half OOS | 1.30 | 1.08 |
+| Second half OOS | 1.66 | 1.08 |
+
+Conclusion: AMZN is rock solid. NVDA depends on a few big wins.
+
+### Earnings straddle analysis: all 8 stocks positive
+
+| Stock | Avg Move | Win Rate | Avg P&L/Event |
+|-------|----------|----------|---------------|
+| META | 10.0% | 83% | +6.70% |
+| AMZN | 6.6% | 79% | +3.67% |
+| TSLA | 7.7% | 58% | +2.49% |
+| GOOG | 5.0% | 79% | +2.47% |
+| MSFT | 4.7% | 83% | +2.41% |
+| AMD | 6.8% | 58% | +2.02% |
+| NVDA | 6.1% | 46% | +1.58% |
+| AAPL | 3.0% | 58% | +0.56% |
+
+Overall: +2.74% per event. Tech mega-caps move 2-4x more than realized vol around earnings.
+Caveat: uses estimated straddle cost, not actual IV. Needs real options data to confirm.
+
+### Next session priorities
+1. Phase 8: Build AI research agents (Scout, Governor) using smolagents
+2. Collect real pre-earnings IV data going forward (options fetcher now works)
+3. Expand stock universe to 50+ for cross-sectional analysis for architecture ideas
 
 ---
 

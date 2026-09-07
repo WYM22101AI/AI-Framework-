@@ -1,7 +1,7 @@
 # Project Tracker: Family Quant AI
 
-**Last updated:** 2026-09-05
-**Status:** Phases 1-5 + 7 complete. Paper trading pipeline operational. 2 strategies pass Skeptic (AMZN, NVDA).
+**Last updated:** 2026-09-07
+**Status:** Phases 1-7 complete. Options fixed. Stress test passed. Earnings straddle shows edge.
 
 ---
 
@@ -19,7 +19,7 @@
 | 1.8 | Alpha Vantage earnings fetcher | Done | 296 quarters (TSLA, NVDA) |
 | 1.9 | SEC EDGAR fundamentals fetcher | Done | 214 filings (TSLA, AAPL, NVDA) |
 | 1.10 | Alpaca news fetcher | Done | 55 recent articles |
-| 1.11 | Alpaca options fetcher | **Broken** | `alpaca-trade-api` has no `get_option_chain`. Needs migration to `alpaca-py` OptionHistoricalDataClient |
+| 1.11 | Alpaca options fetcher | Done | Rewritten with alpaca-py. ATM IV, put/call ratios, greeks working |
 | 1.12 | Multi-source orchestrator (update_market_data.py) | Done | Runs all 6 fetchers with error isolation |
 | 1.13 | Git repo synced to GitHub | Done | https://github.com/WYM22101AI/AI-Framework-.git |
 | 1.14 | README with setup/usage instructions | Done | |
@@ -164,7 +164,7 @@
 ## Progress Summary
 
 ```
-Phase 1: Data Foundation       [================] 14/16 tasks (88%)
+Phase 1: Data Foundation       [================] 16/16 tasks (100%)
 Phase 2: Feature Engineering   [================]  7/7  tasks (100%)
 Phase 3: Statistics Engine     [================]  6/6  tasks (100%)
 Phase 4: Backtesting Engine    [================]  6/6  tasks (100%)
@@ -174,7 +174,7 @@ Phase 7: Paper Trading         [================]  5/5  tasks (100%)
 Phase 8: Agent Research Loop   [                ]  0/11 tasks
 Cross-cutting                  [                ]  0/8  tasks
 
-Overall: 48/70 tasks complete (69%)
+Overall: 52/70 tasks complete (74%)
 ```
 
 ---
