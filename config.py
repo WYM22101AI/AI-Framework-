@@ -44,8 +44,11 @@ TICKERS = [
     "WMT", "HD",
     # Energy
     "XOM",
-    # Benchmark (not traded, used for relative strength)
-    "SPY",
+    # Index ETFs (benchmarks + tradeable)
+    "SPY",   # S&P 500
+    "QQQ",   # Nasdaq 100
+    "IWM",   # Russell 2000 (small cap)
+    "DIA",   # Dow Jones
 ]
 
 # How far back to fetch on first run (years)
