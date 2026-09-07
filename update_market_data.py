@@ -96,13 +96,24 @@ def fetch_sec_data(conn):
 
 
 def fetch_options_data(conn, client):
-    """Fetch options snapshots from Alpaca."""
+    """Fetch options snapshots from Alpaca (using alpaca-py)."""
     print("[5/6] Options (Alpaca)...")
 
     from scripts.options_fetcher import fetch_all_options
 
     try:
-        df = fetch_all_options(client, config.TICKERS)
+        # Get latest prices to determine ATM strikes
+        spot_prices = {}
+        for symbol in config.TICKERS:
+            if symbol == "SPY":
+                continue
+            try:
+                trade = client.get_latest_trade(symbol)
+                spot_prices[symbol] = trade.price
+            except Exception:
+                pass
+
+        df = fetch_all_options(config.API_KEY, config.API_SECRET, config.TICKERS, spot_prices)
         if not df.empty:
             rows = upsert_generic(conn, "options_snapshot", df, ["symbol", "snapshot_date"])
             print(f"  Options: {rows} snapshots stored.")
