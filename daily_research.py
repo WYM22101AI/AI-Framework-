@@ -20,7 +20,7 @@ import sys
 import os
 import subprocess
 import json
-from datetime import datetime
+from datetime import datetime, date
 
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, PROJECT_DIR)
@@ -28,6 +28,110 @@ sys.path.insert(0, PROJECT_DIR)
 PYTHON = os.path.join(PROJECT_DIR, "venv", "Scripts", "python.exe")
 if not os.path.exists(PYTHON):
     PYTHON = os.path.join(PROJECT_DIR, "venv", "bin", "python")
+
+
+# --- Market holiday check ---
+
+# US stock market holidays (fixed + observed rules)
+# Source: NYSE holiday calendar
+def get_market_holidays(year: int) -> set:
+    """Return set of date objects for US market holidays in a given year."""
+    from datetime import timedelta
+    holidays = set()
+
+    # New Year's Day (Jan 1, observed Fri if Sat, Mon if Sun)
+    holidays.add(_observed(date(year, 1, 1)))
+
+    # MLK Day (3rd Monday of January)
+    holidays.add(_nth_weekday(year, 1, 0, 3))  # 0=Monday, 3rd occurrence
+
+    # Presidents' Day (3rd Monday of February)
+    holidays.add(_nth_weekday(year, 2, 0, 3))
+
+    # Good Friday (2 days before Easter Sunday)
+    holidays.add(_easter(year) - timedelta(days=2))
+
+    # Memorial Day (last Monday of May)
+    holidays.add(_last_weekday(year, 5, 0))
+
+    # Juneteenth (June 19, observed)
+    holidays.add(_observed(date(year, 6, 19)))
+
+    # Independence Day (July 4, observed)
+    holidays.add(_observed(date(year, 7, 4)))
+
+    # Labor Day (1st Monday of September)
+    holidays.add(_nth_weekday(year, 9, 0, 1))
+
+    # Thanksgiving (4th Thursday of November)
+    holidays.add(_nth_weekday(year, 11, 3, 4))  # 3=Thursday, 4th occurrence
+
+    # Christmas (Dec 25, observed)
+    holidays.add(_observed(date(year, 12, 25)))
+
+    return holidays
+
+
+def _observed(d: date) -> date:
+    """If holiday falls on Sat, observe Fri. If Sun, observe Mon."""
+    from datetime import timedelta
+    if d.weekday() == 5:  # Saturday
+        return d - timedelta(days=1)
+    elif d.weekday() == 6:  # Sunday
+        return d + timedelta(days=1)
+    return d
+
+
+def _nth_weekday(year: int, month: int, weekday: int, n: int) -> date:
+    """Return the nth occurrence of a weekday in a given month."""
+    import calendar
+    cal = calendar.monthcalendar(year, month)
+    count = 0
+    for week in cal:
+        if week[weekday] != 0:
+            count += 1
+            if count == n:
+                return date(year, month, week[weekday])
+    raise ValueError(f"Could not find {n}th weekday {weekday} in {year}-{month}")
+
+
+def _last_weekday(year: int, month: int, weekday: int) -> date:
+    """Return the last occurrence of a weekday in a given month."""
+    import calendar
+    cal = calendar.monthcalendar(year, month)
+    for week in reversed(cal):
+        if week[weekday] != 0:
+            return date(year, month, week[weekday])
+    raise ValueError(f"Could not find last weekday {weekday} in {year}-{month}")
+
+
+def _easter(year: int) -> date:
+    """Compute Easter Sunday using the Anonymous Gregorian algorithm."""
+    a = year % 19
+    b, c = divmod(year, 100)
+    d, e = divmod(b, 4)
+    f = (b + 8) // 25
+    g = (b - f + 1) // 3
+    h = (19 * a + b - d - g + 15) % 30
+    i, k = divmod(c, 4)
+    l = (32 + 2 * e + 2 * i - h - k) % 7
+    m = (a + 11 * h + 22 * l) // 451
+    month = (h + l - 7 * m + 114) // 31
+    day = ((h + l - 7 * m + 114) % 31) + 1
+    return date(year, month, day)
+
+
+def is_market_open(d: date = None) -> bool:
+    """Check if the US stock market is open on a given date."""
+    if d is None:
+        d = date.today()
+    # Weekends
+    if d.weekday() >= 5:
+        return False
+    # Holidays
+    if d in get_market_holidays(d.year):
+        return False
+    return True
 
 REPORTS_DIR = os.path.join(PROJECT_DIR, "data", "reports")
 os.makedirs(REPORTS_DIR, exist_ok=True)
@@ -48,7 +152,18 @@ def run_script(name, script):
 
 def main():
     execute = "--execute" in sys.argv
+    force = "--force" in sys.argv
     today = datetime.now().strftime("%Y-%m-%d")
+
+    # Skip if market is closed (weekends + holidays), unless --force
+    if not force and not is_market_open(date.today()):
+        msg = f"Market closed today ({date.today().strftime('%A %Y-%m-%d')}). Skipping. Use --force to override."
+        print(msg)
+        # Still write a minimal report so there's a record
+        os.makedirs(REPORTS_DIR, exist_ok=True)
+        with open(os.path.join(REPORTS_DIR, f"daily_{today}.txt"), "w") as f:
+            f.write(f"DAILY RESEARCH REPORT: {today}\nMarket closed (holiday/weekend). Skipped.\n")
+        return
     start_time = datetime.now()
 
     report = {
