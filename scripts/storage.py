@@ -25,6 +25,13 @@ def init_db(db_path: str) -> duckdb.DuckDBPyConnection:
         )
     """)
 
+    # Migrate: add cascade columns if missing (for existing databases)
+    for col in ["volume_acceleration", "rsi_velocity", "move_vs_vol_ratio", "cascade_score", "consecutive_direction_days"]:
+        try:
+            conn.execute(f"ALTER TABLE daily_features ADD COLUMN {col} DOUBLE")
+        except Exception:
+            pass  # column already exists
+
     # Agent memory tables
     conn.execute("""
         CREATE TABLE IF NOT EXISTS agent_log (
@@ -84,6 +91,11 @@ def init_db(db_path: str) -> duckdb.DuckDBPyConnection:
             rsi_14 DOUBLE,
             relative_volume DOUBLE,
             bollinger_position DOUBLE,
+            volume_acceleration DOUBLE,
+            rsi_velocity DOUBLE,
+            move_vs_vol_ratio DOUBLE,
+            cascade_score DOUBLE,
+            consecutive_direction_days DOUBLE,
             relative_strength_vs_spy DOUBLE,
             vix DOUBLE,
             vix_change_5d DOUBLE,
@@ -204,7 +216,7 @@ def upsert_generic(conn: duckdb.DuckDBPyConnection, table: str, df: pd.DataFrame
             SELECT 1 FROM _new_data WHERE {key_condition}
         )
     """)
-    conn.execute(f"INSERT INTO {table} SELECT * FROM _new_data")
+    conn.execute(f"INSERT INTO {table} SELECT {', '.join(df.columns)} FROM _new_data")
     conn.unregister("_new_data")
 
     return len(df)

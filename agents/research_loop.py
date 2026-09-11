@@ -136,6 +136,7 @@ def experiment_loop(strategy_name: str = None, symbols: list = None):
     from scripts.signal_generator import (
         strategy_mr_vix_tuned, strategy_momentum, strategy_mean_reversion,
         strategy_mr_regime, strategy_momentum_regime,
+        strategy_cascade_overreaction, strategy_cascade_momentum,
     )
 
     STRATEGIES = {
@@ -144,6 +145,8 @@ def experiment_loop(strategy_name: str = None, symbols: list = None):
         "mean_reversion": strategy_mean_reversion,
         "mr_regime": strategy_mr_regime,
         "momentum_regime": strategy_momentum_regime,
+        "cascade_overreaction": strategy_cascade_overreaction,
+        "cascade_momentum": strategy_cascade_momentum,
     }
 
     if strategy_name and strategy_name not in STRATEGIES:

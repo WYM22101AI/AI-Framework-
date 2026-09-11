@@ -248,6 +248,100 @@ def strategy_mr_vix_tuned(conn, symbol: str) -> pd.Series:
     return signal
 
 
+def strategy_cascade_overreaction(conn, symbol: str) -> pd.Series:
+    """
+    Strategy H: AI Cascade Overreaction (Fade).
+    Detects algo herding cascades that have pushed price too far, then trades the reversion.
+
+    Signal: when cascade_score > 2.0, consecutive moves >= 3 days, and a large 5d move,
+    fade the overreaction (buy oversold cascades, sell overbought cascades).
+    VIX filter: only when VIX > 18 (stressed markets amplify more).
+    """
+    features = conn.execute(f"""
+        SELECT date, return_1d, return_5d, cascade_score, consecutive_direction_days, vix
+        FROM daily_features
+        WHERE symbol = '{symbol}'
+        ORDER BY date
+    """).fetchdf()
+
+    if features.empty:
+        return pd.Series(dtype=float)
+
+    signal = pd.Series(0, index=features["date"])
+
+    has_data = (
+        features["cascade_score"].notna() &
+        features["vix"].notna() &
+        features["consecutive_direction_days"].notna()
+    )
+
+    cascade_detected = has_data & (features["cascade_score"] > 2.0)
+    herding_persisted = features["consecutive_direction_days"] >= 3
+    vix_stressed = features["vix"] > 18
+
+    # Oversold cascade: big drop + cascade => buy the bounce
+    long_mask = (
+        cascade_detected & herding_persisted & vix_stressed &
+        (features["return_5d"] < -0.05)
+    )
+
+    # Overbought cascade: big rally + cascade => sell the top
+    short_mask = (
+        cascade_detected & herding_persisted & vix_stressed &
+        (features["return_5d"] > 0.05)
+    )
+
+    signal[long_mask.values] = 1
+    signal[short_mask.values] = -1
+
+    return signal
+
+
+def strategy_cascade_momentum(conn, symbol: str) -> pd.Series:
+    """
+    Strategy I: AI Cascade Momentum (Ride).
+    Detects algo cascades early and rides the wave before the full herd piles in.
+
+    Signal: when cascade_score > 1.5, only 1-2 consecutive days (early cascade),
+    and volume is accelerating, trade in the same direction as the move.
+    VIX filter: only when VIX < 25 (cascades in panic markets are too noisy).
+    """
+    features = conn.execute(f"""
+        SELECT date, return_1d, cascade_score, consecutive_direction_days,
+               volume_acceleration, vix
+        FROM daily_features
+        WHERE symbol = '{symbol}'
+        ORDER BY date
+    """).fetchdf()
+
+    if features.empty:
+        return pd.Series(dtype=float)
+
+    signal = pd.Series(0, index=features["date"])
+
+    has_data = (
+        features["cascade_score"].notna() &
+        features["vix"].notna() &
+        features["volume_acceleration"].notna()
+    )
+
+    cascade_starting = has_data & (features["cascade_score"] > 1.5)
+    early_stage = features["consecutive_direction_days"] <= 2
+    vol_accelerating = features["volume_acceleration"] > 1.5
+    vix_ok = features["vix"] < 25
+
+    base_mask = cascade_starting & early_stage & vol_accelerating & vix_ok
+
+    # Ride the direction of the move
+    long_mask = base_mask & (features["return_1d"] > 0)
+    short_mask = base_mask & (features["return_1d"] < 0)
+
+    signal[long_mask.values] = 1
+    signal[short_mask.values] = -1
+
+    return signal
+
+
 STRATEGIES = {
     "momentum": strategy_momentum,
     "mean_reversion": strategy_mean_reversion,
@@ -256,6 +350,8 @@ STRATEGIES = {
     "mr_regime": strategy_mean_reversion_regime,
     "earnings_relaxed": strategy_earnings_drift_relaxed,
     "mr_vix_tuned": strategy_mr_vix_tuned,
+    "cascade_overreaction": strategy_cascade_overreaction,
+    "cascade_momentum": strategy_cascade_momentum,
 }
 
 

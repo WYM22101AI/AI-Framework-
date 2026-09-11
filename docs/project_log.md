@@ -340,10 +340,56 @@ Cross-cut: 0/8 tasks
 ```
 
 ### Next session priorities
-1. Verify full research_loop.py end-to-end (data update + all agents)
-2. Build Experimenter agent (formal hypothesis testing)
-3. Expand to 50+ stocks for cross-sectional analysis
+1. Build Experimenter + Skeptic + Gatekeeper agents
+2. Expand to 50+ stocks
+3. Earnings straddle as paper-tradeable strategy
 4. Study reference repos (TradingAgents, quant-agent)
+
+---
+
+## Session 8: AI Cascade Strategy + Scheduled Job + Remaining Agents (2026-09-07)
+
+### What we did
+- Built Experimenter, Skeptic, Gatekeeper agents (completing the 6-agent architecture)
+- Tested full agent pipeline: Experimenter -> Skeptic -> Gatekeeper on mr_vix_tuned AMZN = APPROVE (Sharpe 1.46)
+- Created daily scheduled research job (Windows Task Scheduler, 5:30 PM daily)
+- Added market holiday detection (10 US holidays, computed algorithmically)
+- Designed and tested AI Cascade Overreaction strategy (Yaming's hypothesis)
+
+### AI Cascade Strategy — New research
+
+**Hypothesis:** When AI/algo models watch the same signals, a trigger can cascade: algo A trades, moving price, triggering algo B, etc. This creates moves that overshoot fundamentals.
+
+**New features added (5):**
+- `volume_acceleration` — is volume increasing day-over-day?
+- `rsi_velocity` — how fast is sentiment shifting?
+- `move_vs_vol_ratio` — is today's move outsized for this stock?
+- `cascade_score` — combined z-score of the above (max observed: 5.24)
+- `consecutive_direction_days` — how many same-direction days in a row?
+
+**Strategy H: Cascade Overreaction (Fade)**
+- Detect cascade_score > 2.0 + 3+ consecutive days + 5%+ 5-day move → trade opposite
+- Result: 0/5 stocks survived Skeptic. Too few signals (1-5 per stock over 10 years)
+- Conclusion: daily bars too coarse to capture intraday cascades
+
+**Strategy I: Cascade Momentum (Ride)**
+- Detect cascade_score > 1.5 + early stage (1-2 days) + volume accelerating → trade same direction
+- Result: 0/5 Skeptic pass. BUT TSLA showed OOS Sharpe +0.88 with 33 trades
+- Conclusion: Hypothesis has merit for most algo-traded stocks (TSLA), but doesn't generalize
+
+### Lessons learned
+1. Daily bars are too coarse for cascade detection — need intraday data for better results
+2. TSLA shows strongest cascade effects (most algo-traded stock in our universe)
+3. The cascade features themselves are valuable for future research (options flow, intraday)
+4. 0 survivors is the honest result — the Skeptic is working correctly
+
+### Progress: 63/70 tasks (90%)
+
+### Next session priorities
+1. Explore intraday data sources for better cascade detection
+2. Test cascade on TSLA with relaxed parameters
+3. Build earnings straddle as paper-tradeable strategy
+4. Expand to 50+ stocks for cross-sectional analysis
 
 ---
 

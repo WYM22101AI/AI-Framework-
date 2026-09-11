@@ -61,6 +61,42 @@ def compute_technical_features(conn, symbol: str) -> pd.DataFrame:
     bb_std = df["close"].rolling(20).std()
     df["bollinger_position"] = (df["close"] - bb_mid) / (2 * bb_std)
 
+    # --- Cascade detection features ---
+
+    # Volume acceleration: is volume *increasing* day over day?
+    # Values > 1.0 mean volume is accelerating (algos joining the cascade)
+    df["volume_acceleration"] = df["relative_volume"] / df["relative_volume"].shift(1)
+
+    # RSI velocity: how fast is sentiment shifting over 3 days?
+    # Large absolute values = rapid sentiment change (algo amplification)
+    df["rsi_velocity"] = df["rsi_14"].diff(3)
+
+    # Move vs volatility: is today's move outsized for this stock?
+    # Values > 2 mean the move is 2+ standard deviations (abnormal)
+    daily_vol = df["return_1d"].rolling(20).std()
+    df["move_vs_vol_ratio"] = df["return_1d"].abs() / daily_vol
+
+    # Consecutive direction days: how many days in a row same direction?
+    # Herding persistence — algos chase for multiple days
+    direction = np.sign(df["return_1d"])
+    streaks = direction.copy()
+    for i in range(1, len(streaks)):
+        if direction.iloc[i] == direction.iloc[i - 1] and direction.iloc[i] != 0:
+            streaks.iloc[i] = streaks.iloc[i - 1] + direction.iloc[i]
+        else:
+            streaks.iloc[i] = direction.iloc[i]
+    df["consecutive_direction_days"] = streaks.abs()
+
+    # Cascade score: combined z-score of the cascade indicators
+    # Higher = more likely an algo cascade is happening
+    vol_accel_z = (df["volume_acceleration"] - df["volume_acceleration"].rolling(60).mean()) / df["volume_acceleration"].rolling(60).std()
+    move_z = (df["move_vs_vol_ratio"] - df["move_vs_vol_ratio"].rolling(60).mean()) / df["move_vs_vol_ratio"].rolling(60).std()
+    rsi_vel_z = (df["rsi_velocity"].abs() - df["rsi_velocity"].abs().rolling(60).mean()) / df["rsi_velocity"].abs().rolling(60).std()
+    df["cascade_score"] = (vol_accel_z.fillna(0) + move_z.fillna(0) + rsi_vel_z.fillna(0)) / 3
+    # Replace any remaining NaN/inf in cascade features
+    for col in ["volume_acceleration", "rsi_velocity", "move_vs_vol_ratio", "cascade_score", "consecutive_direction_days"]:
+        df[col] = df[col].replace([np.inf, -np.inf], np.nan)
+
     df["symbol"] = symbol
 
     feature_cols = [
@@ -69,6 +105,8 @@ def compute_technical_features(conn, symbol: str) -> pd.DataFrame:
         "volatility_20d",
         "distance_from_ma50", "distance_from_ma200",
         "rsi_14", "relative_volume", "bollinger_position",
+        "volume_acceleration", "rsi_velocity", "move_vs_vol_ratio",
+        "cascade_score", "consecutive_direction_days",
     ]
     return df[feature_cols].dropna()
 
@@ -266,6 +304,8 @@ def build_all_features(db_path: str = None) -> pd.DataFrame:
         "volatility_20d",
         "distance_from_ma50", "distance_from_ma200",
         "rsi_14", "relative_volume", "bollinger_position",
+        "volume_acceleration", "rsi_velocity", "move_vs_vol_ratio",
+        "cascade_score", "consecutive_direction_days",
         "relative_strength_vs_spy",
         "vix", "vix_change_5d", "fed_funds", "treasury_10y",
         "days_since_earnings", "last_eps_surprise", "earnings_within_7d",
