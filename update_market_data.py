@@ -19,7 +19,7 @@ from scripts.storage import init_db, get_last_date, upsert_bars, upsert_generic,
 
 def fetch_stock_prices(conn, client):
     """Fetch daily stock bars from Alpaca."""
-    print("[1/6] Stock prices (Alpaca)...")
+    print("[1/7] Stock prices (Alpaca)...")
 
     end_date = datetime.now()
     start_date = end_date
@@ -49,7 +49,7 @@ def fetch_stock_prices(conn, client):
 
 def fetch_macro_data(conn):
     """Fetch FRED macro economic data."""
-    print("[2/6] Macro data (FRED)...")
+    print("[2/7] Macro data (FRED)...")
 
     if not config.FRED_API_KEY:
         print("  Skipped: FRED_API_KEY not set in .env")
@@ -67,7 +67,7 @@ def fetch_macro_data(conn):
 
 def fetch_earnings_data(conn):
     """Fetch earnings from Alpha Vantage."""
-    print("[3/6] Earnings (Alpha Vantage)...")
+    print("[3/7] Earnings (Alpha Vantage)...")
 
     if not config.ALPHA_VANTAGE_API_KEY:
         print("  Skipped: ALPHA_VANTAGE_API_KEY not set in .env")
@@ -84,7 +84,7 @@ def fetch_earnings_data(conn):
 
 def fetch_sec_data(conn):
     """Fetch SEC EDGAR fundamentals."""
-    print("[4/6] Fundamentals (SEC EDGAR)...")
+    print("[4/7] Fundamentals (SEC EDGAR)...")
 
     from scripts.sec_fetcher import fetch_all_fundamentals
 
@@ -97,7 +97,7 @@ def fetch_sec_data(conn):
 
 def fetch_options_data(conn, client):
     """Fetch options snapshots from Alpaca (using alpaca-py)."""
-    print("[5/6] Options (Alpaca)...")
+    print("[5/7] Options (Alpaca)...")
 
     from scripts.options_fetcher import fetch_all_options
 
@@ -125,7 +125,7 @@ def fetch_options_data(conn, client):
 
 def fetch_news_data(conn, client):
     """Fetch news from Alpaca."""
-    print("[6/6] News (Alpaca)...")
+    print("[6/7] News (Alpaca)...")
 
     from scripts.news_fetcher import fetch_news
 
@@ -138,6 +138,18 @@ def fetch_news_data(conn, client):
             print("  News: no articles found.")
     except Exception as e:
         print(f"  News: SKIPPED - {e}")
+
+
+def fetch_massive_options(conn):
+    """Fetch options activity from Massive (Polygon) — free tier."""
+    print("[7/7] Options activity (Massive)...")
+
+    if not config.MASSIVE_API_KEY:
+        print("  Skipped: MASSIVE_API_KEY not set in .env")
+        return
+
+    from scripts.massive_options import fetch_all_tickers
+    fetch_all_tickers(days_back=7)  # Fetch last week of data
 
 
 def main():
@@ -182,6 +194,12 @@ def main():
         fetch_news_data(conn, client)
     except Exception as e:
         print(f"  News: FAILED - {e}")
+
+    # Massive (Polygon) options activity
+    try:
+        fetch_massive_options(conn)
+    except Exception as e:
+        print(f"  Massive Options: FAILED - {e}")
 
     # Summary
     print("\n=== Database Summary ===")

@@ -342,6 +342,8 @@ def strategy_cascade_momentum(conn, symbol: str) -> pd.Series:
     return signal
 
 
+from scripts.unusual_options import strategy_unusual_options, strategy_options_volume_breakout
+
 STRATEGIES = {
     "momentum": strategy_momentum,
     "mean_reversion": strategy_mean_reversion,
@@ -352,6 +354,8 @@ STRATEGIES = {
     "mr_vix_tuned": strategy_mr_vix_tuned,
     "cascade_overreaction": strategy_cascade_overreaction,
     "cascade_momentum": strategy_cascade_momentum,
+    "unusual_options": strategy_unusual_options,
+    "options_volume_breakout": strategy_options_volume_breakout,
 }
 
 

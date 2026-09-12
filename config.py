@@ -28,6 +28,9 @@ ALPHA_VANTAGE_API_KEY = os.getenv("ALPHA_VANTAGE_API_KEY")
 # SEC EDGAR (no key needed, just User-Agent)
 SEC_USER_AGENT = "FamilyQuantAI yamingwang@gmail.com"
 
+# Massive (formerly Polygon) — free tier for options data
+MASSIVE_API_KEY = os.getenv("MASSIVE_API_KEY")
+
 # Data storage
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "market_data.duckdb")
 

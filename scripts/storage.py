@@ -25,6 +25,20 @@ def init_db(db_path: str) -> duckdb.DuckDBPyConnection:
         )
     """)
 
+    # Options activity from Massive (Polygon)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS options_activity (
+            symbol TEXT,
+            date DATE,
+            total_options_volume BIGINT,
+            call_volume BIGINT,
+            put_volume BIGINT,
+            put_call_ratio DOUBLE,
+            n_contracts_sampled INT,
+            PRIMARY KEY (symbol, date)
+        )
+    """)
+
     # Migrate: add cascade columns if missing (for existing databases)
     for col in ["volume_acceleration", "rsi_velocity", "move_vs_vol_ratio", "cascade_score", "consecutive_direction_days"]:
         try:
