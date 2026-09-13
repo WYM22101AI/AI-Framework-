@@ -20,7 +20,7 @@ import os
 import time
 import requests
 import pandas as pd
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import config
@@ -34,7 +34,7 @@ RATE_LIMIT_DELAY = 13  # 5 calls/min = 1 call per 12s, add buffer
 def _api_get(endpoint: str, params: dict = None) -> dict:
     """Make a rate-limited API call to Massive."""
     if not API_KEY:
-        print("  WARNING: MASSIVE_API_KEY not set. Skipping options fetch.")
+        print("  WARNING: MASSIVE_API_KEY not set. Skipping options fetch.", flush=True)
         return {}
 
     url = f"{BASE_URL}{endpoint}"
@@ -46,22 +46,21 @@ def _api_get(endpoint: str, params: dict = None) -> dict:
     resp = requests.get(url, params=params, timeout=30)
 
     if resp.status_code == 429:
-        print("  Rate limited. Waiting 60s...")
+        print("  Rate limited. Waiting 60s...", flush=True)
         time.sleep(60)
         resp = requests.get(url, params=params, timeout=30)
 
     if resp.status_code != 200:
-        print(f"  API error {resp.status_code}: {resp.text[:200]}")
+        print(f"  API error {resp.status_code}: {resp.text[:200]}", flush=True)
         return {}
 
     return resp.json()
 
 
-def get_active_contracts(symbol: str, limit: int = 100) -> list:
-    """Get currently active options contracts for a stock."""
+def get_contracts_for_history(symbol: str, limit: int = 30) -> list:
+    """Get active and historical options contracts for deep history backfill."""
     data = _api_get("/v3/reference/options/contracts", {
         "underlying_ticker": symbol,
-        "expired": "false",
         "limit": limit,
     })
     return data.get("results", [])
@@ -77,24 +76,20 @@ def get_contract_daily_bars(options_ticker: str, from_date: str, to_date: str) -
 
 
 def fetch_options_activity(symbol: str, from_date: str, to_date: str,
-                           max_contracts: int = 20) -> pd.DataFrame:
+                           max_contracts: int = 30) -> pd.DataFrame:
     """
-    Fetch daily aggregated options activity for a stock.
-    Gets the top contracts by OI, then sums daily volume.
-
-    Returns DataFrame with: date, symbol, total_volume, call_volume, put_volume,
-    put_call_ratio, n_contracts_sampled
+    Fetch daily aggregated options activity for a stock over historical date range.
     """
-    print(f"  {symbol}: finding active contracts...")
-    contracts = get_active_contracts(symbol, limit=max_contracts)
+    print(f"  {symbol}: finding options contracts (up to {max_contracts})...", flush=True)
+    contracts = get_contracts_for_history(symbol, limit=max_contracts)
 
     if not contracts:
-        print(f"  {symbol}: no contracts found")
+        print(f"  {symbol}: no contracts found", flush=True)
         return pd.DataFrame()
 
-    print(f"  {symbol}: fetching bars for {len(contracts)} contracts (this takes ~{len(contracts)*RATE_LIMIT_DELAY}s)...")
+    print(f"  {symbol}: fetching historical bars ({from_date} to {to_date}) for {len(contracts)} contracts...", flush=True)
 
-    daily_data = {}  # date -> {call_vol, put_vol}
+    daily_data = {}
 
     for i, contract in enumerate(contracts):
         ticker = contract.get("ticker", "")
@@ -104,7 +99,7 @@ def fetch_options_activity(symbol: str, from_date: str, to_date: str,
 
         for bar in bars:
             ts = bar.get("t", 0)
-            date_str = datetime.utcfromtimestamp(ts / 1000).strftime("%Y-%m-%d")
+            date_str = datetime.fromtimestamp(ts / 1000, tz=timezone.utc).strftime("%Y-%m-%d")
             vol = bar.get("v", 0)
 
             if date_str not in daily_data:
@@ -115,8 +110,7 @@ def fetch_options_activity(symbol: str, from_date: str, to_date: str,
             elif contract_type == "put":
                 daily_data[date_str]["put_volume"] += vol
 
-        if (i + 1) % 5 == 0:
-            print(f"    ... {i+1}/{len(contracts)} contracts processed")
+        print(f"    [{i+1}/{len(contracts)}] {ticker} ({len(bars)} days) done", flush=True)
 
     if not daily_data:
         return pd.DataFrame()
@@ -141,23 +135,21 @@ def fetch_options_activity(symbol: str, from_date: str, to_date: str,
     return pd.DataFrame(rows)
 
 
-def fetch_all_tickers(days_back: int = 30, max_contracts_per_ticker: int = 20):
-    """Fetch options activity for all tickers in config."""
+def fetch_all_tickers(days_back: int = 730, max_contracts_per_ticker: int = 30):
+    """Fetch 2-year options activity for all tickers including indices."""
     if not API_KEY:
-        print("MASSIVE_API_KEY not set in .env. Get a free key at https://massive.com/dashboard")
+        print("MASSIVE_API_KEY not set in .env. Get a free key at https://massive.com/dashboard", flush=True)
         return
 
     to_date = datetime.now().strftime("%Y-%m-%d")
     from_date = (datetime.now() - timedelta(days=days_back)).strftime("%Y-%m-%d")
 
-    print(f"Fetching options activity from Massive (Polygon)")
-    print(f"  Date range: {from_date} to {to_date}")
-    print(f"  Tickers: {len(config.TICKERS)}")
-    print(f"  Rate limit: {RATE_LIMIT_DELAY}s per call (free tier)")
+    print(f"=== Massive (Polygon) 2-Year Options Backfill ===", flush=True)
+    print(f"  Date range: {from_date} to {to_date} (730 days)", flush=True)
+    print(f"  Rate limit: {RATE_LIMIT_DELAY}s per call (free tier safe pacing)", flush=True)
 
-    # Skip index ETFs that have too many contracts
-    skip_tickers = {"SPY"}  # SPY has thousands of contracts, skip for now
-    tickers = [t for t in config.TICKERS if t not in skip_tickers]
+    # Core tech stocks + major indices
+    tickers = ["TSLA", "NVDA", "AMD", "AMZN", "AAPL", "MSFT", "META", "GOOG", "SPY", "QQQ"]
 
     conn = init_db(config.DB_PATH)
     total_rows = 0
@@ -178,14 +170,14 @@ def fetch_all_tickers(days_back: int = 30, max_contracts_per_ticker: int = 20):
                 conn.execute("INSERT INTO options_activity SELECT symbol, date, total_options_volume, call_volume, put_volume, put_call_ratio, n_contracts_sampled FROM _opt_data")
                 conn.unregister("_opt_data")
                 total_rows += len(df)
-                print(f"  {symbol}: stored {len(df)} rows")
+                print(f"  => {symbol}: stored {len(df)} historical rows in options_activity\n", flush=True)
             else:
-                print(f"  {symbol}: no data")
+                print(f"  => {symbol}: no data returned\n", flush=True)
         except Exception as e:
-            print(f"  {symbol}: ERROR - {e}")
+            print(f"  => {symbol}: ERROR - {e}\n", flush=True)
 
     conn.close()
-    print(f"\nDone. Total: {total_rows} rows stored in options_activity table.")
+    print(f"\nBackfill Complete! Total: {total_rows} rows stored in options_activity table.", flush=True)
 
 
 if __name__ == "__main__":
