@@ -63,8 +63,6 @@ def get_active_contracts(symbol: str, limit: int = 100) -> list:
         "underlying_ticker": symbol,
         "expired": "false",
         "limit": limit,
-        "order": "desc",
-        "sort": "open_interest",
     })
     return data.get("results", [])
 
