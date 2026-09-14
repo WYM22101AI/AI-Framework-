@@ -1,400 +1,265 @@
 # Family Quant AI: Technical Guide for Benjamin
 
-**Written by: Dad + CoCo (AI coding assistant)**
-**Last updated: September 2026**
+**Written by: Dad + CoCo (AI coding assistant)**  
+**Last updated: September 2026 (Phase 8 Complete — 90% Milestone)**
 
-Hey Benjamin -- this document explains everything we've built so far, how it works, and why we made each decision. Read it start to finish the first time, then use it as a reference.
+Hey Benjamin — this document explains everything we've built, how the whole system works, the math and AI behind it, and why we made each engineering decision. Read it start to finish, then keep it as your reference handbook.
 
 ---
 
 ## What We're Building
 
-We're building a system that:
-1. Downloads financial data every day (stock prices, economic indicators, earnings, news)
-2. Computes "features" -- numbers that describe what's happening in the market
-3. Generates trading ideas ("hypotheses")
-4. Tests each idea with real statistics to see if it's actually good or just luck
-5. Only trades ideas that survive rigorous testing
-6. Learns from its mistakes over time
+We're building an autonomous, AI-assisted quantitative research platform for financial markets:
+1. **Multi-Source Data Ingestion**: Downloads market data every day (stock prices, economic releases, earnings, SEC filings, options flow, and news).
+2. **Feature Engineering**: Calculates 24 quantitative metrics per stock per day describing price action, volatility, market regimes, and algo herding.
+3. **Hypothesis Generation**: Formulates structured trading ideas based on anomalies and market conditions.
+4. **The Skeptic (Statistical Engine)**: Rigorously stress-tests every hypothesis with math (bootstrap resampling, permutation shuffles, walk-forward validation) to kill bad ideas.
+5. **AI Research Agents**: Autonomous agents (Scout, Regime, Governor, Experimenter, Skeptic, Gatekeeper) that collaborate to discover, test, and promote strategies.
+6. **Paper Trading**: Executes approved survivor strategies in real-time via Alpaca's paper trading API.
+7. **Automated Daily Research**: Runs unattended at 5:30 PM daily after market close, wakes the computer if asleep, checks market holidays, and generates executive reports.
 
-Think of it like a science lab for the stock market. We're not guessing -- we're running experiments.
-
----
-
-## The Big Idea (Most Important Section)
-
-Most people who try to trade with AI do this:
-
-```
-"AI, should I buy TSLA?" --> AI says "yes" --> they buy
-```
-
-That's terrible. The AI is just pattern-matching on vibes.
-
-What WE do instead:
-
-```
-AI finds something unusual ("NVDA dropped 10% but nothing bad happened")
-    |
-    v
-We turn that into a testable hypothesis
-    |
-    v
-We test it on 5+ years of historical data
-    |
-    v
-We run 5 statistical tests trying to PROVE IT DOESN'T WORK
-    |
-    v
-If we can't kill it --> maybe it's real --> paper trade it
-```
-
-The key insight: **our edge isn't "AI finds patterns." Our edge is: AI finds hypotheses, then deterministic math tries to destroy them. Only the survivors get traded.**
+Think of it as a **computational science lab for markets**. We don't guess — we run reproducible experiments.
 
 ---
 
-## How the Code Works
+## The Big Idea: The "Skeptic" Philosophy
 
-### The Pipeline (runs daily after market close)
+Most people who try to trade with AI make this mistake:
 
 ```
-python daily_pipeline.py
-
-Step 1: Download new data
-  - Stock prices from Alpaca (16 tickers)
-  - Macro data from FRED (CPI, unemployment, interest rates, VIX)
-  - Earnings from Alpha Vantage (quarterly EPS reports)
-  - Company financials from SEC (revenue, income)
-  - News headlines from Alpaca
-
-Step 2: Compute features
-  - Calculate 19 numbers per stock per day
-  - These numbers describe "what state is this stock in?"
-
-Step 3: Generate signals
-  - Check: is any stock in a condition that historically led to profits?
-
-Step 4: Paper trade
-  - If a signal fires: show what we'd buy/sell (dry run)
-  - With --execute flag: actually submit orders to Alpaca paper account
+"AI, should I buy TSLA?" --> LLM says "Yes!" --> They buy --> Lose money
 ```
 
-### Key Files
+LLMs are pattern matchers and will hallucinate confidence on pure noise.
 
-| File | What it does |
-|------|-------------|
-| `config.py` | All settings (tickers, API keys, database path) |
-| `daily_pipeline.py` | Runs the full pipeline end-to-end |
-| `update_market_data.py` | Downloads data from all 5 sources |
-| `scripts/feature_engine.py` | Computes the 19 features |
-| `scripts/signal_generator.py` | Defines trading strategies |
-| `scripts/stats_engine.py` | Statistical tests (the "Skeptic") |
-| `scripts/backtester.py` | Tests strategies on historical data |
-| `scripts/paper_trader.py` | Submits orders to Alpaca |
+**What WE do instead (The Three-Layer Architecture):**
+
+```
+ ┌────────────────────────────────────────────────────────┐
+ │ 1. Ground Truth Mechanics (Strict Python / DuckDB)      │
+ │    Data ingestion, accounting, trade execution, math   │
+ └──────────────────────────┬─────────────────────────────┘
+                            │
+ ┌──────────────────────────▼─────────────────────────────┐
+ │ 2. Research & Hypothesis (AI Agents + Exploration)     │
+ │    Scout finds anomalies, Governor proposes ideas      │
+ └──────────────────────────┬─────────────────────────────┘
+                            │
+ ┌──────────────────────────▼─────────────────────────────┐
+ │ 3. The Skeptic & Gatekeeper (Statistical Destruction)  │
+ │    5 math tests try to PROVE IT DOESN'T WORK.          │
+ │    Only strategies that CANNOT BE KILLED get traded.   │
+ └────────────────────────────────────────────────────────┘
+```
+
+> **The Golden Rule**: AI agents NEVER compute statistics or make trade decisions directly. AI proposes hypotheses; deterministic Python math attempts to destroy them. Only the survivors get funded.
 
 ---
 
-## The 19 Features (What We Measure Every Day)
+## The 6-Agent AI Architecture (Phase 8)
 
-### Technical Features (from stock prices)
+We built an ensemble of specialized research agents in the `agents/` directory:
 
-| Feature | What it means | Example |
-|---------|--------------|---------|
-| `return_1d` | How much the stock moved today | +2.3% |
-| `return_5d` | How much it moved in 5 days | -1.5% |
-| `return_20d` | 20-day momentum | +8.2% |
-| `return_60d` | 60-day trend | +15.1% |
-| `volatility_20d` | How wild the price swings are (annualized) | 45% |
-| `distance_from_ma50` | Is price above or below its 50-day average? | +3.2% above |
-| `distance_from_ma200` | Same for 200-day average | -5.1% below |
-| `rsi_14` | RSI = Relative Strength Index (0-100). Below 30 = "oversold", above 70 = "overbought" | 28 (oversold) |
-| `relative_volume` | Today's volume vs normal. 2.0 = twice normal | 1.8x |
-| `bollinger_position` | Where price sits in its normal range. Below -1 = unusually low | -1.2 |
-| `relative_strength_vs_spy` | Is this stock beating or losing to the market? | +0.05 (beating) |
+```
+                      ┌────────────────────────┐
+                      │     GOVERNOR AGENT     │
+                      │  (Weekly Research Plan)│
+                      └───────────┬────────────┘
+                                  │
+         ┌────────────────────────┼────────────────────────┐
+         │                        │                        │
+         ▼                        ▼                        ▼
+ ┌───────────────┐        ┌───────────────┐        ┌───────────────┐
+ │  SCOUT AGENT  │        │ REGIME AGENT  │        │ EXPERIMENTER  │
+ │(Anomaly Scan) │        │ (Market State)│        │  (Backtester) │
+ └───────┬───────┘        └───────┬───────┘        └───────┬───────┘
+         │                        │                        │
+         └────────────────────────┼────────────────────────┘
+                                  │
+                                  ▼
+                      ┌────────────────────────┐
+                      │     SKEPTIC AGENT      │
+                      │   (5-Gate Kill Switch) │
+                      └───────────┬────────────┘
+                                  │ (If Passed)
+                                  ▼
+                      ┌────────────────────────┐
+                      │    GATEKEEPER AGENT    │
+                      │  (Portfolio Promotion) │
+                      └───────────┬────────────┘
+                                  │
+                                  ▼
+                         Alpaca Paper Trading
+```
 
-### Regime Features (from economic data)
-
-| Feature | What it means |
-|---------|--------------|
-| `vix` | The "fear index." Below 15 = calm, above 25 = scared, above 35 = panic |
-| `vix_change_5d` | Is fear rising or falling? |
-| `fed_funds` | The interest rate the Federal Reserve sets |
-| `treasury_10y` | 10-year government bond yield |
-
-### Fundamental Features (from earnings)
-
-| Feature | What it means |
-|---------|--------------|
-| `days_since_earnings` | How many days since the company reported earnings |
-| `last_eps_surprise` | Did earnings beat or miss expectations? +5% = beat by 5% |
-| `earnings_within_7d` | Is an earnings report coming in the next week? |
+| Agent | File | What it Does | Method |
+|---|---|---|---|
+| **Regime** | `agents/regime.py` | Classifies macro climate: `LOW_VOL`, `RISK_ON`, `RISK_OFF`, `HIGH_VOL` | VIX + SPY vs MA50 |
+| **Scout** | `agents/scout.py` | Scans daily features across all stocks to find unusual volume, RSI extremes, large moves | Statistical Anomaly Scanner |
+| **Governor** | `agents/governor.py` | Reviews weekly experiments, identifies dead strategy families, proposes new research | Research Manager |
+| **Experimenter** | `agents/experimenter.py` | Takes a hypothesis, generates signals, runs out-of-sample backtest, logs to DuckDB | Deterministic Backtesting |
+| **Skeptic** | `agents/skeptic.py` | 5-gate evaluation: Sharpe $\ge 0.5$, Drawdown $< 30\%$, Trades $\ge 30$, Beats SPY, No Overfitting | Statistical Battery |
+| **Gatekeeper** | `agents/gatekeeper.py` | Portfolio risk check: prevents single-stock concentration and manages position sizing | Portfolio Manager |
+| **Orchestrator**| `agents/research_loop.py` | Chained daily loop: Data $\rightarrow$ Features $\rightarrow$ Regime $\rightarrow$ Scout $\rightarrow$ Paper Trade | Command Center |
 
 ---
 
-## The Strategies We Tested
+## The 24 Daily Features
 
-### What Failed (and why that's valuable)
+Every day, `scripts/feature_engine.py` computes 24 numbers for each stock:
 
-| Strategy | Idea | Result | Lesson |
-|----------|------|--------|--------|
-| **Momentum** | Buy stocks going up, sell stocks going down | FAIL on all stocks | This is the most basic strategy. Everyone knows it. It's been traded to death. |
-| **Mean Reversion** | Buy oversold stocks (RSI < 30) | FAIL on most stocks | Works slightly but not enough to cover trading costs |
-| **Earnings Drift** | Buy after positive earnings surprise | No signal | Our earnings data was incomplete |
-| **Momentum + VIX filter** | Only trade momentum when VIX is low | Still FAIL | The underlying momentum signal is just too weak |
+### 1. Price & Momentum Features
+- `return_1d`, `return_5d`, `return_20d`, `return_60d`: Returns over 1, 5, 20, and 60 days.
+- `volatility_20d`: Realized 20-day annualized volatility.
+- `distance_from_ma50`, `distance_from_ma200`: Percentage distance from moving averages.
+- `relative_strength_vs_spy`: Stock performance minus SPY performance over 20 days.
 
-**Why 0 survivors is okay:** If basic textbook strategies still worked easily, everyone would be rich. The fact that they fail confirms our testing system is honest.
+### 2. Oscillator & Volume Features
+- `rsi_14`: Relative Strength Index (0–100). Below 30 = oversold, above 70 = overbought.
+- `relative_volume`: Today's volume divided by the 20-day average volume.
+- `bollinger_position`: Normalized position within Bollinger Bands ($-1.0$ to $+1.0$).
 
-### What Survived: VIX-Conditional Mean Reversion
+### 3. AI Cascade & Herding Features (New!)
+*Built to detect when algorithmic trading models create feedback loops and amplify moves:*
+- `volume_acceleration`: Rate of volume increase day-over-day (is the herd piling in?).
+- `rsi_velocity`: 3-day rate of change in RSI (sentiment shift speed).
+- `move_vs_vol_ratio`: Daily return divided by 20-day daily volatility (abnormality ratio).
+- `consecutive_direction_days`: Number of consecutive up or down days (herding persistence).
+- `cascade_score`: Multi-factor composite z-score combining volume acceleration, move ratio, and RSI velocity.
 
-```
-WHEN:   VIX > 20 (market is scared)
-AND:    RSI < 35 (stock is oversold)
-AND:    Bollinger < -0.6 (price is unusually low)
-THEN:   BUY
+### 4. Macro Regime Features
+- `vix`: Market fear index from FRED.
+- `vix_change_5d`: 5-day percentage change in VIX.
+- `fed_funds`: Current Federal Reserve interest rate.
+- `treasury_10y`: 10-Year US Treasury bond yield.
 
-WHEN:   VIX > 20
-AND:    RSI > 65 (stock is overbought)
-AND:    Bollinger > 0.6
-THEN:   SELL SHORT
-```
-
-**In plain English:** When the overall market is fearful and a specific stock has been beaten down too far, buy it. The bounce tends to be sharp and reliable.
-
-**Results after testing on 15 stocks:**
-
-| Stock | Annual Return | Sharpe Ratio | Passed Skeptic? |
-|-------|-------------|-------------|----------------|
-| AMZN | +10.8% | 1.46 | YES (4/5 tests) |
-| NVDA | +9.6% | 1.02 | YES (4/5 tests) |
-| AMD | +5.0% | 0.62 | No (1/5) |
-| TSLA | +4.6% | 0.57 | No (1/5) |
-| MSFT | +2.4% | 0.15 | No (1/5) |
-
-**Why it works better on tech stocks:** High-beta stocks (AMZN, NVDA, TSLA) overshoot more during selloffs, so the bounce is bigger. Defensive stocks (WMT, JNJ) don't drop as much, so there's less bounce to capture.
+### 5. Fundamental & Event Features
+- `days_since_earnings`: Days elapsed since last quarterly earnings release.
+- `last_eps_surprise`: Percentage EPS beat or miss vs Wall Street consensus.
+- `earnings_within_7d`: Boolean flag indicating if earnings report is within 7 days.
 
 ---
 
-## The Skeptic: How We Test If a Strategy Is Real
+## Strategy Scorecard: What Works & What Failed
 
-This is the most important part of the whole system. The Skeptic runs 5 tests:
+### The Survivors (Passed Skeptic Testing & Paper Trading)
 
-### Test 1: t-test
-**Question:** "Is the average return statistically different from zero?"
-**How:** Standard statistical test. If p-value < 0.05, it passes.
-**Why it matters:** A strategy might look profitable but that could be pure luck.
+#### 1. VIX-Conditional Mean Reversion (`strategy_mr_vix_tuned`)
+- **Core Logic**: When market fear is elevated (**VIX > 20**) and an individual stock is oversold (**RSI < 35**, **Bollinger < -0.6**), buy the bounce.
+- **Why it works**: Fear creates indiscriminate selling. High-beta tech stocks overshoot to the downside, then snap back violently.
+- **Results**:
+  - **AMZN**: **Sharpe 1.46**, Out-of-Sample Return **+13.4%/yr**, Max Drawdown **-3.6%**, Passed **4/5 Skeptic tests**.
+  - **NVDA**: **Sharpe 1.02**, Out-of-Sample Return **+11.8%/yr**, Max Drawdown **-7.2%**, Passed **4/5 Skeptic tests**.
+- **Status**: **Approved by Gatekeeper & live in Alpaca paper trading.**
 
-### Test 2: Bootstrap Confidence Interval
-**Question:** "If we resample the data 10,000 times, does zero fall inside the confidence interval?"
-**How:** Randomly pick returns with replacement, compute the mean 10,000 times, check the range.
-**Why it matters:** More robust than a single t-test.
-
-### Test 3: Permutation Test
-**Question:** "If we randomly shuffled which days we traded, would we do just as well?"
-**How:** Shuffle the signal 5,000 times, compare each shuffled result to the real one.
-**Why it matters:** If random trading does just as well, our signal is meaningless.
-
-### Test 4: Walk-Forward Test
-**Question:** "Does it work consistently across different time periods?"
-**How:** Split the data into 5 sequential chunks, test each separately.
-**Why it matters:** A strategy that only worked in 2021 but not 2023-2026 is probably a fluke.
-
-### Test 5: Economic Significance
-**Question:** "Does the edge survive after trading costs?"
-**How:** Subtract estimated transaction costs (spreads, slippage) from returns.
-**Why it matters:** A strategy that makes 0.05% per trade but costs 0.04% per trade is useless.
-
-**Verdict:** PASS = 4-5 tests passed. WEAK = 3. FAIL = 0-2.
+#### 2. Pre-Earnings Straddle Volatility (`scripts/earnings_straddle.py`)
+- **Core Logic**: Tech mega-caps consistently experience larger price moves on earnings than the options market prices in.
+- **Results**: Analyzed 192 historical earnings events across 8 stocks $\rightarrow$ **+2.74% average return per event**.
 
 ---
 
-## Key Concepts to Understand
+### The Failures (Killed by the Skeptic)
 
-### Sharpe Ratio
-The most important number in quantitative finance. It measures **return per unit of risk.**
-
-```
-Sharpe = (average return) / (standard deviation of returns) * sqrt(252)
-```
-
-| Sharpe | Meaning |
-|--------|---------|
-| < 0 | Losing money |
-| 0 - 0.5 | Weak |
-| 0.5 - 1.0 | Decent |
-| 1.0 - 2.0 | Good |
-| > 2.0 | Suspicious (probably overfit) |
-
-Our AMZN strategy has Sharpe 1.46 -- that's genuinely good.
-
-### Overfitting
-The #1 danger in quant finance. It means your strategy memorized the past instead of finding a real pattern.
-
-**Example of overfitting:**
-```
-"Buy TSLA every third Tuesday in months starting with J when the moon is waning"
-Backtest: +200% return!
-Reality: Pure coincidence.
-```
-
-**How we avoid it:**
-- Split data: train on 2016-2022, test on 2023-2026
-- If in-sample looks great but out-of-sample looks bad = overfitting
-- Our system warns: "IS Sharpe >> OOS Sharpe"
-
-### Adjusted Prices
-Stock prices in our database are "adjusted" for splits and dividends.
-
-Tesla split 5:1 in August 2020 (a $2,000 share became five $400 shares) and 3:1 in August 2022. Our data retroactively divides ALL historical prices by 15 so the chart looks smooth and returns can be calculated correctly.
-
-### Annualized Returns
-To compare a stock's return to a CD or savings account, use **365 calendar days**:
-
-```
-annualized = (1 + total_return) ^ (365 / calendar_days) - 1
-```
-
-NOT 252 trading days. That's only for annualizing volatility (risk).
+| Strategy | Logic | Result | Why It Failed |
+|---|---|---|---|
+| **Simple Momentum** | Buy high, sell low | FAIL (Sharpe -0.68) | Classic signal arbitraged away by Wall Street decades ago |
+| **Simple Mean Reversion** | Buy RSI < 30 (no VIX) | FAIL (Sharpe 0.10) | Catching falling knives in calm bear markets |
+| **Earnings Drift** | Buy on EPS beat | No signal | 5% surprise threshold was too strict |
+| **Cascade Overreaction (Fade)** | Fade large cascade moves | FAIL (Sharpe -0.23) | Daily bars are too coarse to catch intraday reversions |
 
 ---
 
-## The Database
+## The Skeptic's 5 Statistical Tests
 
-Everything lives in a single file: `data/market_data.duckdb`
+1. **One-Sample t-test**: Is average return statistically greater than 0 ($p < 0.05$)?
+2. **Bootstrap Confidence Interval**: Resample returns 10,000 times. Does the 95% confidence interval stay strictly above zero?
+3. **Permutation Test**: Shuffle trade signals randomly 5,000 times. Does the real strategy beat $>95\%$ of random shuffles?
+4. **Walk-Forward Validation**: Split the 10-year timeline into 5 sequential periods. Does the strategy make money in at least 3 out of 5 periods?
+5. **Economic Significance**: After deducting slippage, commissions, and bid-ask spreads (5 bps round-trip), does real net profit remain?
 
-DuckDB is like SQLite but optimized for analytics. You can query it with SQL:
-
-```python
-import duckdb
-conn = duckdb.connect("data/market_data.duckdb", read_only=True)
-
-# See all tables
-print(conn.execute("SHOW TABLES").fetchall())
-
-# Get TSLA's last 5 days
-print(conn.execute("""
-    SELECT timestamp::DATE, close
-    FROM daily_bars
-    WHERE symbol = 'TSLA'
-    ORDER BY timestamp DESC
-    LIMIT 5
-""").fetchdf())
-
-# See today's features
-print(conn.execute("""
-    SELECT symbol, rsi_14, vix, bollinger_position
-    FROM daily_features
-    WHERE date = (SELECT MAX(date) FROM daily_features)
-""").fetchdf())
-
-conn.close()
-```
-
-### Tables
-
-| Table | Rows | What's in it |
-|-------|------|-------------|
-| daily_bars | 24,556 | Stock prices (open, high, low, close, volume) for 16 tickers |
-| macro_releases | 29,572 | Economic data (CPI, unemployment, interest rates, VIX) |
-| earnings | 296 | Quarterly earnings per share with analyst estimates |
-| fundamentals | 214 | Revenue, income, assets from SEC filings |
-| news | 55 | Recent news headlines |
-| daily_features | 20,034 | 19 computed features per stock per day |
-| research_experiments | 9+ | Records of every strategy we've tested |
-| trade_log | varies | Paper trading order history |
+**Verdict**: 4–5 passes = **PASS** | 3 passes = **WEAK** | 0–2 passes = **FAIL (Killed)**
 
 ---
 
-## The 6-Agent Architecture (Coming Next)
+## Database Architecture (`market_data.duckdb`)
 
-We're building towards a team of AI agents that do different jobs:
+All data is stored in a high-performance, embedded DuckDB database file:
 
-| Agent | Job | LLM or Code? |
-|-------|-----|-------------|
-| **Scout** | "What looks unusual today?" | AI |
-| **Context/Regime** | "What kind of market are we in?" | Code |
-| **Feature Miner** | "What new patterns should we test?" | AI |
-| **Skeptic** | "Prove this isn't noise." | **Strictly code** |
-| **Experimenter** | "Design and run the test." | **Strictly code** |
-| **Governor** | "What should we investigate next?" | AI |
-
-**Critical rule:** AI agents NEVER compute statistics. They request tests; Python executes them. This prevents the AI from "convincing itself" something works.
+| Table | Rows | Data Description | Source |
+|---|---|---|---|
+| `daily_bars` | 29,164 | 10 years of split/dividend adjusted OHLCV for 19 tickers | Alpaca API |
+| `macro_releases` | 29,572 | VIX, 10Y Yield, Fed Funds, CPI, GDP, Unemployment | FRED API |
+| `earnings` | 296 | Quarterly EPS, estimates, surprise percentages | Alpha Vantage |
+| `fundamentals` | 214 | Balance sheet, cash flow, revenue from 10-K/10-Q filings | SEC EDGAR |
+| `news` | 55+ | Financial news articles & sentiment tags | Alpaca News |
+| `daily_features` | 24,045 | All 24 technical, cascade, regime, and earnings features | Feature Engine |
+| `options_activity` | Active | Daily options volume, call/put volume, put/call ratios | Massive (Polygon) |
+| `research_experiments`| 25+ | Full audit log of every strategy, Sharpe, drawdown, and verdict | Experimenter Agent |
+| `agent_log` | 20+ | Timestamped log of agent thoughts, decisions, and regime states | BaseAgent |
+| `trade_log` | Active | Paper trading orders, execution prices, position sizes | Paper Trader |
 
 ---
 
-## How to Run Everything
+## Automated Daily Scheduling
+
+The system runs autonomously every day at **5:30 PM ET**:
+
+1. **Windows Task Scheduler** triggers `scripts/run_daily.bat`.
+2. `daily_research.py` runs the entire research cycle:
+   - **Holiday Engine**: Checks US market holidays algorithmically (New Year, MLK, Presidents, Good Friday, Memorial, Juneteenth, July 4, Labor Day, Thanksgiving, Christmas). If the market was closed, it skips cleanly without wasting API calls.
+   - **Data Fetch**: Pulls the day's market close prices and economic data.
+   - **Feature Engine**: Computes the 24 daily features.
+   - **Agent Loop**: Regime agent classifies market state $\rightarrow$ Scout agent flags anomalies.
+   - **Paper Trader**: Submits orders for any active Skeptic-approved signals.
+   - **Report Generator**: Saves daily summaries to `data/reports/daily_YYYY-MM-DD.txt` and `.json`.
+
+---
+
+## How to Run the Code
 
 ```bash
-# Activate the environment
-cd C:\Users\Yaming\family-quant-ai      # or wherever you cloned it
-venv\Scripts\activate                     # Windows
-source venv/bin/activate                  # Mac
+# 1. Activate Python Environment
+cd C:\Users\Yaming\family-quant-ai
+venv\Scripts\activate
 
-# Run the daily pipeline (dry run)
-python daily_pipeline.py
+# 2. Run the Daily Research Loop (Dry Run)
+python agents/research_loop.py
 
-# Run it for real (submits orders to paper account)
-python daily_pipeline.py --execute
+# 3. Test a Strategy Through the AI Agents
+python agents/research_loop.py --experiment --strategy=mr_vix_tuned
 
-# Just update data
-python update_market_data.py
+# 4. Run the Weekly Governor Review
+python agents/research_loop.py --review
 
-# Just compute features
-python scripts/feature_engine.py
+# 5. Execute Paper Trading Orders
+python scripts/paper_trader.py --execute
 
-# Test a strategy
-python scripts/signal_generator.py
-
-# Run all strategies on all stocks
-python scripts/run_all_strategies.py
-
-# Explore in notebook
-jupyter notebook notebooks/exploration.ipynb
+# 6. Check Daily Reports
+type data\reports\daily_2026-09-10.txt
 ```
 
 ---
 
-## Things To Try (Homework Challenges)
+## Hands-On Coding Challenges for Benjamin
 
-### Easy
-1. Open `notebooks/exploration.ipynb` and run all cells. Look at the charts.
-2. Query the database: what was NVDA's RSI on the day it dropped the most?
-3. How many days in the last year was VIX above 20?
+### Level 1: Beginner
+1. Open Python and connect to DuckDB: Write a SQL query to find the top 5 days when VIX spiked the most.
+2. Look at `data/reports/`: Read the latest daily report and see what regime the market is in today.
 
-### Medium
-4. Add a new feature to `feature_engine.py` (e.g., 10-day average volume)
-5. Create a new strategy in `signal_generator.py` (e.g., buy when VIX drops below 15 after being above 25)
-6. Run your strategy through `run_strategy_test()` and see the Skeptic verdict
+### Level 2: Intermediate
+3. Look at `agents/scout.py`: Add a new anomaly rule (for example, flag any stock whose 5-day volatility jumped by more than 50%).
+4. Look at `scripts/signal_generator.py`: Write a new strategy combining `rsi_14 < 30` with `relative_volume > 2.0`.
+5. Run your new strategy through `agents/experimenter.py` and see what the Skeptic says!
 
-### Hard
-7. Add a new stock ticker to `config.py`, fetch data, compute features, test the mean reversion strategy on it
-8. Modify the parameter sweep (`scripts/param_sweep.py`) to test a new parameter combination
-9. Write a query that finds all dates where AMZN was oversold AND VIX > 20, and show what happened the next day
+### Level 3: Advanced
+6. Explore `scripts/unusual_options.py`: Use the new `options_activity` data to test if high put/call ratios predict next-week stock drops.
+7. Study `agents/governor.py`: Upgrade the Governor agent with an LLM prompt to automatically synthesize weekly trade logs into plain English notes.
 
 ---
 
-## Where To Learn More
+## The Philosophy of Quant Research
 
-| Topic | Resource |
-|-------|----------|
-| Python basics | Python for Everybody (free online) |
-| Pandas/DataFrames | 10 Minutes to Pandas (official tutorial) |
-| SQL | Mode Analytics SQL Tutorial (free) |
-| Statistics | Khan Academy Statistics and Probability |
-| Stock market | "A Random Walk Down Wall Street" by Burton Malkiel |
-| Machine learning | "Hands-On ML" by Aurelien Geron |
-| AI agents | HuggingFace Agents Course (free) |
-
-See `docs/learning_roadmap.md` for the full reading list.
-
----
-
-## One Last Thing
-
-This project isn't about getting rich from trading. It's about learning:
-- How to write code that solves real problems
-- How to think scientifically (hypothesis -> test -> learn)
-- How financial markets work
-- How statistics separates signal from noise
-- How AI can assist research (not replace thinking)
-
-The platform is the product. The learning is the real return.
+1. **Be humble before data**: 95% of trading ideas fail when tested properly. Finding out an idea doesn't work is just as valuable as finding one that does — it saves you real capital.
+2. **Never fool yourself**: Overfitting is the easiest trap. Always test on out-of-sample data the model has never seen before.
+3. **Control risk first**: Sharpe ratio and drawdown matter more than raw return. A strategy with +15% return and -5% drawdown is 10x better than one with +30% return and -40% drawdown.
+4. **Code is your superpower**: With Python, DuckDB, and statistical engines, you have the same quantitative tooling on your laptop that multi-billion dollar hedge funds used a decade ago.
