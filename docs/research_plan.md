@@ -760,3 +760,32 @@ Our backtest should explicitly test sensitivity to:
 8. **The Skeptic is your best friend.** Ideas that survive it are rare and valuable.
 9. **Don't let data access become feature soup.** 500 features that maximize historical Sharpe = overfitting.
 10. **Every data source must earn its place.** Prove it adds incremental out-of-sample value.
+
+---
+
+## Long-Horizon Vision & Scaling Roadmap (1–3 Years)
+
+```
+   STAGE 1 (Now)               STAGE 2 (Months 3-6)           STAGE 3 (Months 6-12)          STAGE 4 (Year 2+)
+ ┌───────────────────┐       ┌──────────────────────┐       ┌──────────────────────┐       ┌──────────────────────┐
+ │ Edge Discovery    │       │ Multi-Strategy Lab   │       │ Hybrid Cloud & Prod  │       │ Autonomous Capital   │
+ │ • Local DuckDB    │       │ • 50-100 Tickers     │       │ • Snowflake Warehouse│       │ • Full Cloud SPCS    │
+ │ • 19 Tickers      │  ──►  │ • Real Options Flow  │  ──►  │ • Daily Batch Ingest │  ──►  │ • Live Capital Trade │
+ │ • Paper Trading   │       │ • Self-Funding $700  │       │ • Monte Carlo Risk   │       │ • Multi-Asset Auto   │
+ │ • Cost: $20/mo    │       │ • Cost: ~$50-$80/mo  │       │ • Cost: ~$120/mo     │       │ • Self-Sustaining    │
+ └───────────────────┘       └──────────────────────┘       └──────────────────────┘       └──────────────────────┘
+```
+
+### Empirical Scaling Triggers:
+1. **Paid Options Feed Upgrade**: When options breakout strategies achieve Sharpe $>1.0$ over 60 days in paper trading $\rightarrow$ Add **ThetaData ($80/mo)** or **Massive Starter ($29/mo)**.
+2. **Move Compute/Data to Snowflake**: When universe exceeds **300+ stocks** or minute data $>25\text{ GB}$ $\rightarrow$ Use Snowflake virtual warehouses for transformations and local DuckDB for execution.
+3. **Graduate to Live Capital**: 3 distinct strategies pass **90 days of live paper trading with Sharpe $>1.2$** $\rightarrow$ Deploy pilot capital ($2k–$3k) then scale to $10k–$20k.
+
+---
+
+## Intraday Strategy Suite Roadmap (Phase 11)
+
+- **Opening Range Breakout (ORB)**: Trading 9:30–10:00 AM momentum expansions with volume confirmation.
+- **Intraday Cascade Reversion**: Fading 3-sigma 15-minute price washouts during market panic sessions.
+- **Intraday VWAP Bands**: Trading institutional mean-reversion around volume-weighted benchmark prices.
+
