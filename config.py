@@ -37,21 +37,31 @@ DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "mark
 # Tickers to track
 # Core universe: liquid, high-volume stocks across sectors + SPY benchmark
 TICKERS = [
-    # Tech
-    "TSLA", "AAPL", "NVDA", "MSFT", "META", "AMZN", "GOOG", "AMD",
-    # Finance
-    "JPM", "GS",
-    # Healthcare
-    "JNJ", "UNH",
-    # Consumer
-    "WMT", "HD",
-    # Energy
-    "XOM",
-    # Index ETFs (benchmarks + tradeable)
-    "SPY",   # S&P 500
+    # 1. Technology & Semiconductors (11)
+    "TSLA", "AAPL", "NVDA", "MSFT", "META", "AMZN", "GOOG", "AMD", "AVGO", "QCOM", "INTC",
+    # 2. Financials (7)
+    "JPM", "GS", "MS", "BAC", "V", "MA", "BLK",
+    # 3. Healthcare & Biotech (6)
+    "JNJ", "UNH", "LLY", "PFE", "ABBV", "MRK",
+    # 4. Consumer Discretionary & Retail (5)
+    "HD", "NKE", "MCD", "SBUX", "TGT",
+    # 5. Consumer Staples (4)
+    "WMT", "COST", "PG", "KO",
+    # 6. Energy (3)
+    "XOM", "CVX", "COP",
+    # 7. Industrials & Aerospace (5)
+    "CAT", "GE", "BA", "UNP", "HON",
+    # 8. Communication Services (2)
+    "DIS", "NFLX",
+    # 9. Utilities & Real Estate (2)
+    "NEE", "PLD",
+    # 10. Materials (1)
+    "LIN",
+    # 11. Index & Sector Benchmark ETFs (4)
+    "SPY",   # S&P 500 Benchmark
     "QQQ",   # Nasdaq 100
-    "IWM",   # Russell 2000 (small cap)
-    "DIA",   # Dow Jones
+    "IWM",   # Russell 2000 Small Caps
+    "DIA",   # Dow Jones Industrial Average
 ]
 
 # How far back to fetch on first run (years)
