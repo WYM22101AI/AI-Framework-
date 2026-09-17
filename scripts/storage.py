@@ -39,6 +39,22 @@ def init_db(db_path: str) -> duckdb.DuckDBPyConnection:
         )
     """)
 
+    # Resilient Queue for 2-Year Historical Options Crawler
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS options_contracts_queue (
+            options_ticker TEXT PRIMARY KEY,
+            underlying_ticker TEXT,
+            contract_type TEXT,
+            expiration_date DATE,
+            strike_price DOUBLE,
+            status TEXT DEFAULT 'pending', -- 'pending', 'processing', 'completed', 'failed', 'empty'
+            discovered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            completed_at TIMESTAMP,
+            bars_count INT DEFAULT 0,
+            error_message TEXT
+        )
+    """)
+
     # Migrate: add cascade columns if missing (for existing databases)
     for col in ["volume_acceleration", "rsi_velocity", "move_vs_vol_ratio", "cascade_score", "consecutive_direction_days"]:
         try:
