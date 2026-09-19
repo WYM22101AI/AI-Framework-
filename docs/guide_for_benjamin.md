@@ -56,7 +56,7 @@ LLMs are pattern matchers and will hallucinate confidence on pure noise.
 
 ---
 
-## The 6-Agent AI Architecture (Phase 8)
+## The 7-Agent AI Architecture (Phase 8 + Layer 2.5)
 
 We built an ensemble of specialized research agents in the `agents/` directory:
 
@@ -78,6 +78,12 @@ We built an ensemble of specialized research agents in the `agents/` directory:
                                   │
                                   ▼
                       ┌────────────────────────┐
+                      │   META-LABELER AGENT   │  <-- Layer 2.5 Cortex AI / Jev Gate
+                      │(News/Anomaly Classifier│
+                      └───────────┬────────────┘
+                                  │ (Approved Signals)
+                                  ▼
+                      ┌────────────────────────┐
                       │     SKEPTIC AGENT      │
                       │   (5-Gate Kill Switch) │
                       └───────────┬────────────┘
@@ -96,6 +102,7 @@ We built an ensemble of specialized research agents in the `agents/` directory:
 |---|---|---|---|
 | **Regime** | `agents/regime.py` | Classifies macro climate: `LOW_VOL`, `RISK_ON`, `RISK_OFF`, `HIGH_VOL` | VIX + SPY vs MA50 |
 | **Scout** | `agents/scout.py` | Scans daily features across all stocks to find unusual volume, RSI extremes, large moves | Statistical Anomaly Scanner |
+| **Meta-Labeler** | `agents/meta_labeler.py` | Layer 2.5 Bayesian filter: evaluates news context, classifies anomalies, vetoes falling knives | Snowflake Cortex AI / TypeSafe Jev |
 | **Governor** | `agents/governor.py` | Reviews weekly experiments, identifies dead strategy families, proposes new research | Research Manager |
 | **Experimenter** | `agents/experimenter.py` | Takes a hypothesis, generates signals, runs out-of-sample backtest, logs to DuckDB | Deterministic Backtesting |
 | **Skeptic** | `agents/skeptic.py` | 5-gate evaluation: Sharpe $\ge 0.5$, Drawdown $< 30\%$, Trades $\ge 30$, Beats SPY, No Overfitting | Statistical Battery |

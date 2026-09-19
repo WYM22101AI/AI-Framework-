@@ -233,6 +233,29 @@ def main():
 
         agent = BaseAgent("scout", "")
         agent.log(conn, "scan", "Scheduled daily scan", scout, report.get("regime", {}).get("classification"))
+
+        # Layer 2.5: Meta-Labeling Decision Gate (Cortex AI / Jev)
+        from agents.meta_labeler import MetaLabelerAgent
+        meta_labeler = MetaLabelerAgent()
+        report["meta_labels"] = []
+
+        for opp in report["opportunities"]:
+            try:
+                state = meta_labeler.package_state(conn, opp["symbol"], opp["type"], today)
+                eval_res = meta_labeler.evaluate_state(state)
+                meta_labeler.store_evaluation(conn, opp["symbol"], today, opp["type"], eval_res)
+                
+                opp["meta_label"] = eval_res
+                report["meta_labels"].append({
+                    "symbol": opp["symbol"],
+                    "strategy": opp["type"],
+                    "verdict": "VETOED" if eval_res.get("veto_trade") else "APPROVED",
+                    "anomaly_type": eval_res.get("anomaly_type"),
+                    "quality_weight": eval_res.get("quality_weight"),
+                    "reasoning": eval_res.get("reasoning")
+                })
+            except Exception as e:
+                report["errors"].append(f"Meta-labeling failed for {opp['symbol']}: {e}")
     except Exception as e:
         report["errors"].append(f"Scout agent failed: {e}")
 
@@ -274,7 +297,11 @@ def main():
         if report["opportunities"]:
             f.write(f"OPPORTUNITIES ({len(report['opportunities'])}):\n")
             for opp in report["opportunities"]:
-                f.write(f"  {opp['symbol']} [{opp['type']}]: {', '.join(opp['flags'])}\n")
+                meta = opp.get("meta_label", {})
+                verdict = " [VETOED]" if meta.get("veto_trade") else f" [APPROVED - Weight: {meta.get('quality_weight', 1.0):.2f}]" if meta else ""
+                f.write(f"  {opp['symbol']} [{opp['type']}]{verdict}: {', '.join(opp['flags'])}\n")
+                if meta:
+                    f.write(f"    -> Meta-Label: {meta.get('anomaly_type')} | Reversion Prob: {meta.get('mean_reversion_prob', 0)*100:.0f}% | {meta.get('reasoning')}\n")
             f.write("\n")
         else:
             f.write("OPPORTUNITIES: None today.\n\n")

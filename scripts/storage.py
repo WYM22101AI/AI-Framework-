@@ -55,6 +55,26 @@ def init_db(db_path: str) -> duckdb.DuckDBPyConnection:
         )
     """)
 
+    # Layer 2.5: Meta-Labels (Cortex AI / Jev Decision Filter)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS meta_labels (
+            symbol TEXT,
+            date DATE,
+            strategy TEXT,
+            anomaly_type TEXT,
+            continuation_prob DOUBLE,
+            mean_reversion_prob DOUBLE,
+            evidence_quality_score DOUBLE,
+            possible_data_error BOOLEAN,
+            veto_trade BOOLEAN,
+            quality_weight DOUBLE,
+            reasoning TEXT,
+            model_engine TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (symbol, date, strategy)
+        )
+    """)
+
     # Migrate: add cascade columns if missing (for existing databases)
     for col in ["volume_acceleration", "rsi_velocity", "move_vs_vol_ratio", "cascade_score", "consecutive_direction_days"]:
         try:

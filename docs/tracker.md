@@ -116,7 +116,7 @@
 
 ---
 
-## Phase 8: Multi-Agent Research Loop — IN PROGRESS
+## Phase 8: Multi-Agent Research Loop — COMPLETE
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
@@ -130,7 +130,8 @@
 | 8.8 | Experimenter agent — formal hypothesis testing | Done | agents/experimenter.py — runs backtest + records to research_experiments |
 | 8.9 | Skeptic agent — orchestrates stats_engine | Done | agents/skeptic.py — 5-gate evaluation (Sharpe, drawdown, trades, benchmark, overfit) |
 | 8.10 | Gatekeeper agent — promotion decisions | Done | agents/gatekeeper.py — portfolio-level checks + final APPROVE/REJECT |
-| 8.11 | Migrate to smolagents when ready | Future | Start simple Python first |
+| 8.11 | MetaLabeler agent — Layer 2.5 Cortex AI / Jev gate | Done | agents/meta_labeler.py — Bayesian anomaly classification & falling knife veto |
+| 8.12 | Migrate to smolagents when ready | Future | Start simple Python first |
 
 ---
 
