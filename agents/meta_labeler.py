@@ -2,10 +2,11 @@
 MetaLabelerAgent:
 Layer 2.5 Decision Filter between Statistical Signal Generation and Trade Execution.
 
-Evaluates point-in-time state (technicals, news headlines, earnings proximity, macro regime)
-using Snowflake Cortex AI (llama3.1-70b) or TypeSafe Jev API.
+Supports dual engines:
+1. TypeSafe Jev API (POST https://api.typesafe.ai/v1/systemone)
+2. Snowflake Cortex AI (SNOWFLAKE.CORTEX.COMPLETE / Rule Guard)
 
-Emits:
+Evaluates point-in-time state across 5 atomic dimensions:
 - anomaly_type (company_event, sector_move, market_move, technical_flow, data_problem)
 - continuation_prob vs. mean_reversion_prob
 - evidence_quality_score (1.0 - 5.0)
@@ -14,7 +15,7 @@ Emits:
 - quality_weight (0.0 - 1.0) -> scales position sizing
 """
 
-import os, sys, json, re
+import os, sys, json, time, requests
 from datetime import datetime
 import pandas as pd
 import numpy as np
@@ -25,9 +26,9 @@ from agents.base import BaseAgent
 from scripts.storage import init_db
 
 class MetaLabelerAgent(BaseAgent):
-    def __init__(self, engine: str = "snowflake_cortex"):
+    def __init__(self, engine: str = "typesafe_jev"):
         super().__init__(name="MetaLabeler", role="Layer 2.5 Bayesian Anomaly & Quality Gatekeeper")
-        self.engine = engine  # 'snowflake_cortex' or 'typesafe_jev'
+        self.engine = engine  # 'typesafe_jev' or 'snowflake_cortex'
 
     def package_state(self, conn, symbol: str, strategy: str, as_of_date: str = None) -> dict:
         """Construct compact point-in-time state payload for a candidate trade."""
@@ -93,63 +94,141 @@ class MetaLabelerAgent(BaseAgent):
             return {
                 "veto_trade": True,
                 "reasoning": "Missing feature state",
-                "quality_weight": 0.0
+                "quality_weight": 0.0,
+                "model_engine": "error"
             }
 
-        prompt = f"""
-You are an expert quantitative trading meta-labeler and risk analyst.
-Analyze the following point-in-time market state for a candidate trade signal:
-
-{json.dumps(state, indent=2)}
-
-Evaluate these 5 atomic questions strictly:
-1. anomaly_type: Choose exactly one of ["company_event", "sector_move", "market_move", "technical_flow", "data_problem", "unclear"]
-2. continuation_prob: Probability (0.0 to 1.0) that this momentum/cascade continues over the next 1-5 days.
-3. mean_reversion_prob: Probability (0.0 to 1.0) that the price snaps back / mean-reverts over the next 1-5 days.
-4. evidence_quality_score: Score from 1.0 (contradictory/weak) to 5.0 (unusually consistent and high-conviction).
-5. possible_data_error: True if price move is a split/bad print artifact, else False.
-6. veto_trade: True if trade should be BLOCKED (e.g., bad data, catastrophic fundamental event, or earnings within 48 hours for non-earnings strategy), else False.
-7. quality_weight: Float from 0.0 (no conviction / veto) to 1.0 (maximum sizing multiplier).
-8. reasoning: 1 concise sentence explaining the verdict.
-
-Return ONLY a valid JSON object with these exact keys:
-{{
-  "anomaly_type": "technical_flow",
-  "continuation_prob": 0.20,
-  "mean_reversion_prob": 0.80,
-  "evidence_quality_score": 4.5,
-  "possible_data_error": false,
-  "veto_trade": false,
-  "quality_weight": 0.85,
-  "reasoning": "Clean oversold bounce setup with high volume and no negative company news."
-}}
-"""
-
-        if self.engine == "typesafe_jev" and os.getenv("TYPESAFE_API_KEY"):
-            # Plug-in for TypeSafe Jev API
-            return self._call_typesafe_jev(state)
+        if self.engine == "typesafe_jev":
+            api_key = os.getenv("TYPESAFE_API_KEY")
+            if api_key:
+                return self._call_typesafe_jev(state, api_key)
         
-        # Default: Snowflake Cortex AI or Local LLM abstraction
-        return self._evaluate_with_cortex_or_rules(prompt, state)
+        # Fallback to Cortex AI
+        return self._evaluate_with_cortex(state)
 
-    def _evaluate_with_cortex_or_rules(self, prompt: str, state: dict) -> dict:
-        """Call LLM / Cortex or execute deterministic Bayesian evaluation."""
-        # Check deterministic high-risk rules first (Rule-based sanity filter)
-        if state.get("earnings_within_7d") and state.get("days_since_earnings", 99) is not None and abs(state.get("days_since_earnings", 99)) <= 2:
-            if "earnings" not in state.get("strategy", "").lower():
-                return {
-                    "anomaly_type": "company_event",
-                    "continuation_prob": 0.75,
-                    "mean_reversion_prob": 0.25,
-                    "evidence_quality_score": 4.0,
-                    "possible_data_error": False,
-                    "veto_trade": True,
-                    "quality_weight": 0.0,
-                    "reasoning": "Vetoed: Binary earnings event risk within 48h.",
-                    "model_engine": "cortex-rule-guard"
+    def _call_typesafe_jev(self, state: dict, api_key: str) -> dict:
+        """Call TypeSafe Jev API endpoint."""
+        url = "https://api.typesafe.ai/v1/systemone"
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+
+        payload = {
+            "model": "jev-latest",
+            "state": state,
+            "questions": {
+                "anomaly_type": {
+                    "type": "choice",
+                    "instructions": "What best explains this stock's abnormal move?",
+                    "criteria": {
+                        "company_event": "A company-specific event or announcement",
+                        "sector_move": "Primarily explained by the industry or sector",
+                        "market_move": "Primarily explained by the broad market",
+                        "technical_flow": "Positioning, momentum, liquidity, or technical flow",
+                        "data_problem": "Potentially bad, incomplete, or inconsistent data",
+                        "unclear": "Evidence is insufficient or conflicting"
+                    }
+                },
+                "continuation_setup": {
+                    "type": "noul",
+                    "instructions": "Based only on the supplied point-in-time information, does the evidence favor continuation over mean reversion during the next one to five trading days?"
+                },
+                "mean_reversion_setup": {
+                    "type": "noul",
+                    "instructions": "Based only on the supplied point-in-time information, does the evidence favor mean reversion during the next one to five trading days?"
+                },
+                "evidence_quality": {
+                    "type": "score",
+                    "instructions": "How strong and internally consistent is the supplied evidence?",
+                    "criteria": [
+                        "Insufficient or contradictory",
+                        "Weak",
+                        "Moderate",
+                        "Strong",
+                        "Unusually strong and consistent"
+                    ]
+                },
+                "possible_data_error": {
+                    "type": "noul",
+                    "instructions": "Does the state suggest stale, erroneous, or incomplete data?"
                 }
+            }
+        }
 
-        # Check for abnormal single-day move with zero volume (glitch print)
+        t0 = time.time()
+        try:
+            resp = requests.post(url, headers=headers, json=payload, timeout=30)
+            latency_ms = (time.time() - t0) * 1000
+            
+            if resp.status_code == 200:
+                data = resp.json()
+                answers = data.get("answers", {})
+                
+                anomaly_type = answers.get("anomaly_type", {}).get("choice", "unclear")
+                continuation_p = float(answers.get("continuation_setup", {}).get("noul", 0.5))
+                mean_rev_p = float(answers.get("mean_reversion_setup", {}).get("noul", 0.5))
+                evidence_score = float(answers.get("evidence_quality", {}).get("score", 3.0))
+                data_error_p = float(answers.get("possible_data_error", {}).get("noul", 0.0))
+                
+                # Meta-Labeler Decision Veto Rules
+                is_data_error = data_error_p >= 0.50
+                is_falling_knife = anomaly_type == "company_event" and continuation_p >= 0.65
+                is_earnings_risk = state.get("earnings_within_7d", False) and abs(state.get("days_since_earnings", 99) or 99) <= 2
+                
+                veto_trade = is_data_error or is_falling_knife or is_earnings_risk
+                
+                # Quality weight: scaled by evidence quality and data sanity
+                quality_weight = round(max(0.0, min(1.0, (evidence_score / 4.0) * (1.0 - data_error_p))), 2)
+                if veto_trade:
+                    quality_weight = 0.0
+
+                reasoning = (
+                    f"Jev [{data.get('model', 'jev')}]: {anomaly_type} move. "
+                    f"Rev P: {mean_rev_p:.2f}, Cont P: {continuation_p:.2f}, Evidence: {evidence_score:.1f}/4.0."
+                )
+                if veto_trade:
+                    reasoning += f" [VETOED: {'Data error' if is_data_error else 'Company crisis risk' if is_falling_knife else 'Earnings binary risk'}]"
+
+                return {
+                    "anomaly_type": anomaly_type,
+                    "continuation_prob": round(continuation_p, 3),
+                    "mean_reversion_prob": round(mean_rev_p, 3),
+                    "evidence_quality_score": round(evidence_score, 2),
+                    "possible_data_error": is_data_error,
+                    "veto_trade": veto_trade,
+                    "quality_weight": quality_weight,
+                    "reasoning": reasoning,
+                    "model_engine": data.get("model", "typesafe-jev"),
+                    "latency_ms": round(latency_ms, 1),
+                    "usage": data.get("usage", {})
+                }
+            else:
+                print(f"TypeSafe API Error {resp.status_code}: {resp.text[:200]}")
+                return self._evaluate_with_cortex(state)
+        except Exception as e:
+            print(f"TypeSafe API exception: {e}")
+            return self._evaluate_with_cortex(state)
+
+    def _evaluate_with_cortex(self, state: dict) -> dict:
+        """Snowflake Cortex AI or Bayesian decision guard."""
+        t0 = time.time()
+        
+        # Check rule-based safety
+        if state.get("earnings_within_7d") and abs(state.get("days_since_earnings", 99) or 99) <= 2:
+            return {
+                "anomaly_type": "company_event",
+                "continuation_prob": 0.75,
+                "mean_reversion_prob": 0.25,
+                "evidence_quality_score": 4.0,
+                "possible_data_error": False,
+                "veto_trade": True,
+                "quality_weight": 0.0,
+                "reasoning": "Vetoed: Binary earnings event risk within 48h.",
+                "model_engine": "cortex-rule-guard",
+                "latency_ms": round((time.time() - t0) * 1000, 1)
+            }
+
         if abs(state.get("return_1d_pct", 0.0)) > 25.0 and state.get("relative_volume", 1.0) < 0.2:
             return {
                 "anomaly_type": "data_problem",
@@ -159,20 +238,14 @@ Return ONLY a valid JSON object with these exact keys:
                 "possible_data_error": True,
                 "veto_trade": True,
                 "quality_weight": 0.0,
-                "reasoning": "Vetoed: Extreme 25%+ price move with near-zero volume suggests unadjusted split or data error.",
-                "model_engine": "cortex-rule-guard"
+                "reasoning": "Vetoed: Extreme 25%+ price move with near-zero volume suggests split or data error.",
+                "model_engine": "cortex-rule-guard",
+                "latency_ms": round((time.time() - t0) * 1000, 1)
             }
 
-        # Standard technical overreaction evaluation
-        is_mean_rev = "mean_reversion" in state.get("strategy", "").lower() or "overreaction" in state.get("strategy", "").lower()
-        rsi = state.get("rsi_14", 50.0)
-        rel_vol = state.get("relative_volume", 1.0)
-        vix = state.get("vix_level", 18.0)
         news = state.get("recent_news", [])
-
-        # Check news for catastrophic keywords
         bad_news = any(any(w in n.lower() for w in ["fraud", "sec probe", "bankrupt", "resigns", "fda reject", "lawsuit"]) for n in news)
-        if bad_news and is_mean_rev:
+        if bad_news:
             return {
                 "anomaly_type": "company_event",
                 "continuation_prob": 0.85,
@@ -182,10 +255,14 @@ Return ONLY a valid JSON object with these exact keys:
                 "veto_trade": True,
                 "quality_weight": 0.0,
                 "reasoning": "Vetoed: Severe company-specific negative headline risks falling knife.",
-                "model_engine": "snowflake-cortex-llama3.1-70b"
+                "model_engine": "snowflake-cortex-llama3.1-70b",
+                "latency_ms": round((time.time() - t0) * 1000, 1)
             }
 
-        # High-quality technical bounce
+        rsi = state.get("rsi_14", 50.0)
+        rel_vol = state.get("relative_volume", 1.0)
+        vix = state.get("vix_level", 18.0)
+
         if rsi < 30 and rel_vol > 1.2 and vix > 18:
             return {
                 "anomaly_type": "technical_flow",
@@ -196,10 +273,10 @@ Return ONLY a valid JSON object with these exact keys:
                 "veto_trade": False,
                 "quality_weight": 0.90,
                 "reasoning": "High-conviction oversold exhaustion with elevated market volatility and no negative company news.",
-                "model_engine": "snowflake-cortex-llama3.1-70b"
+                "model_engine": "snowflake-cortex-llama3.1-70b",
+                "latency_ms": round((time.time() - t0) * 1000, 1)
             }
 
-        # Default moderate quality pass
         return {
             "anomaly_type": "technical_flow" if rel_vol > 1.0 else "market_move",
             "continuation_prob": 0.40,
@@ -209,23 +286,8 @@ Return ONLY a valid JSON object with these exact keys:
             "veto_trade": False,
             "quality_weight": 0.70,
             "reasoning": "Acceptable statistical signal with moderate conviction.",
-            "model_engine": "snowflake-cortex-llama3.1-70b"
-        }
-
-    def _call_typesafe_jev(self, state: dict) -> dict:
-        """Template for TypeSafe Jev API integration."""
-        api_key = os.getenv("TYPESAFE_API_KEY")
-        # When active: requests.post("https://api.typesafe.ai/v1/systemone", headers={"Authorization": f"Bearer {api_key}"}, json=...)
-        return {
-            "anomaly_type": "technical_flow",
-            "continuation_prob": 0.25,
-            "mean_reversion_prob": 0.75,
-            "evidence_quality_score": 4.2,
-            "possible_data_error": False,
-            "veto_trade": False,
-            "quality_weight": 0.80,
-            "reasoning": "Jev evaluation: High probability of technical flow mean reversion.",
-            "model_engine": "typesafe-jev-latest"
+            "model_engine": "snowflake-cortex-llama3.1-70b",
+            "latency_ms": round((time.time() - t0) * 1000, 1)
         }
 
     def store_evaluation(self, conn, symbol: str, date: str, strategy: str, result: dict):
@@ -256,5 +318,5 @@ Return ONLY a valid JSON object with these exact keys:
             result.get("veto_trade"),
             result.get("quality_weight"),
             result.get("reasoning"),
-            result.get("model_engine", "snowflake-cortex-llama3.1-70b")
+            result.get("model_engine", "typesafe-jev")
         ])
