@@ -66,7 +66,11 @@ def compute_strategy_returns(
     # Strategy return = signal * forward_return - costs on trade days
     result["position_change"] = result["signal"].diff().abs()
     result["cost"] = result["position_change"] * cost_per_trade
-    result["strategy_return"] = result["signal"] * result["forward_return"] - result["cost"]
+    
+    # Dual-Benchmark: Cash earns risk-free yield (default 4.5% annual / 252 days) when signal == 0
+    daily_rf = 0.045 / 252.0
+    result["cash_yield"] = (1.0 - result["signal"].abs()) * daily_rf
+    result["strategy_return"] = (result["signal"] * result["forward_return"]) - result["cost"] + result["cash_yield"]
 
     # Benchmark: buy and hold
     result["benchmark_return"] = prices["forward_return"]
