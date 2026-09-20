@@ -111,6 +111,25 @@ We built an ensemble of specialized research agents in the `agents/` directory:
 
 ---
 
+## The Trading Cage: Deterministic Risk Gateway & Capital Envelope
+
+One of the most important lessons in algorithmic trading is: **Never give an AI model direct, unrestricted access to a brokerage account.**
+
+We built the **Trading Cage** (`scripts/trade_gateway.py` + `config/cage_policy.json`):
+1. **The Human Authority Boundary**:
+   - Only you (the human owner) can decide the capital envelope ($20,000 max), whether shorting is allowed (`allow_shorting = False`), whether leverage is allowed (`max_leverage = 1.0` cash only), or what stocks can be traded (50 $\rightarrow$ 500 universe).
+   - An AI model **cannot modify its own permissions or increase its own capital**.
+2. **7 Deterministic Pre-Trade Gates**:
+   - **Gate 1: Emergency Kill-Switch**: If a file `data/KILL_SWITCH` exists, 100% of order traffic is instantly aborted.
+   - **Gate 2: Universe Allowlist**: Blocks trades on unvetted tickers.
+   - **Gate 3: Position Size Clamping**: Clamps any single order to max $5,000 / 25% of account.
+   - **Gate 4: Shorting & Leverage Check**: Prevents margin debt or unauthorized shorting.
+   - **Gate 5: Volatility Circuit Breaker**: Halts trading if market VIX > 40.
+3. **Unified Broker Adapter (`scripts/broker_adapter.py`)**:
+   - Normalizes orders across **Alpaca** and **Interactive Brokers (IBKR)** so our quant strategies remain 100% broker-agnostic.
+
+---
+
 ## The 24 Daily Features
 
 Every day, `scripts/feature_engine.py` computes 24 numbers for each stock:

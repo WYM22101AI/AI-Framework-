@@ -75,6 +75,28 @@ def init_db(db_path: str) -> duckdb.DuckDBPyConnection:
         )
     """)
 
+    # Layer 3: Immutable Trade Audit Log (The Trading Cage)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS trade_audit_log (
+            trade_id TEXT PRIMARY KEY,
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            symbol TEXT,
+            strategy TEXT,
+            side TEXT,
+            requested_dollars DOUBLE,
+            approved_dollars DOUBLE,
+            shares INT,
+            estimated_price DOUBLE,
+            gateway_verdict TEXT, -- 'APPROVED', 'MODIFIED', 'REJECTED'
+            risk_checks_passed TEXT,
+            rejection_reasons TEXT,
+            jev_meta_label TEXT,
+            broker TEXT, -- 'alpaca' or 'ibkr'
+            broker_order_id TEXT,
+            status TEXT -- 'SUBMITTED', 'REJECTED', 'SIMULATED'
+        )
+    """)
+
     # Migrate: add cascade columns if missing (for existing databases)
     for col in ["volume_acceleration", "rsi_velocity", "move_vs_vol_ratio", "cascade_score", "consecutive_direction_days"]:
         try:

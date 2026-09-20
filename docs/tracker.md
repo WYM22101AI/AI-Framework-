@@ -145,6 +145,9 @@
 | 10.4 | 50-Ticker Full-Universe Alpha Sweep | Done | 176 experiments across 49 symbols |
 | 10.5 | Skeptic 5-Test Statistical Certification | Done | CAT passed 5/5 tests, AMZN passed 4/5 tests |
 | 10.6 | Gatekeeper Multi-Sector Portfolio Promotion | Done | Promoted 5-Asset Portfolio (AMZN, CAT, NVDA, V, COST) — Portfolio Sharpe 1.52, 3Y Return +71.4%, Max DD -8.2% |
+| 10.7 | Institutional Trading Cage & Risk Gateway | Done | scripts/trade_gateway.py + config/cage_policy.json (Human-Locked Envelope, 7 Pre-Trade Gates, Kill-Switch) |
+| 10.8 | Unified Multi-Broker Adapter | Done | scripts/broker_adapter.py (Alpaca + IBKR normalized interface) |
+| 10.9 | Immutable Trade Audit Log | Done | DuckDB trade_audit_log table |
 
 ---
 

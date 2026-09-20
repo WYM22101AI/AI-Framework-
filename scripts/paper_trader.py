@@ -1,252 +1,184 @@
 """
-Paper Trader: connect surviving strategies to Alpaca paper trading.
-Generates target positions from signals and submits orders.
+Paper Trading Module (With Institutional Trading Cage Protection):
+Executes the approved multi-sector production strategies on Alpaca or IBKR.
 
-Usage:
-    python scripts/paper_trader.py              # Dry run (show orders, don't submit)
-    python scripts/paper_trader.py --execute    # Actually submit orders
+All orders must pass through the deterministic TradeGateway (The Cage)
+before reaching any broker API.
 """
 
-import sys
-import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-import duckdb
-import pandas as pd
-import numpy as np
+import sys, os
 from datetime import datetime
-import alpaca_trade_api as tradeapi
+import pandas as pd
+import duckdb
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import config
-from scripts.storage import init_db, upsert_generic
-from scripts.signal_generator import strategy_mr_vix_tuned
+import scripts.signal_generator as sg
+from scripts.storage import init_db
+from scripts.trade_gateway import TradeGateway
+from scripts.broker_adapter import get_broker_adapter
 
-
-# Stocks approved for paper trading (passed Skeptic or strong positive OOS)
-APPROVED_STOCKS = ["AMZN", "NVDA"]
-
-# Position sizing
-MAX_POSITION_PCT = 0.25       # Max 25% of portfolio per stock
-TOTAL_EXPOSURE_PCT = 0.50     # Max 50% total invested (keep cash buffer)
-PORTFOLIO_VALUE = 100_000     # Paper trading starting capital
-
+APPROVED_STOCKS = ["AMZN", "CAT", "NVDA", "V", "COST"]
 
 def get_current_signals(conn) -> dict:
-    """Generate today's signals for approved stocks."""
+    """Generate today's signals for the promoted production portfolio."""
     signals = {}
+    strat_map = {
+        "AMZN": sg.strategy_mr_vix_tuned,
+        "CAT": sg.strategy_momentum_regime,
+        "NVDA": sg.strategy_mr_vix_tuned,
+        "V": sg.strategy_mr_vix_tuned,
+        "COST": sg.strategy_mean_reversion_regime,
+    }
+
     for symbol in APPROVED_STOCKS:
-        signal = strategy_mr_vix_tuned(conn, symbol)
-        if not signal.empty:
-            latest_date = signal.index.max()
-            latest_signal = int(signal.iloc[-1])
-            signals[symbol] = {
-                "signal": latest_signal,
-                "date": latest_date,
-                "direction": "LONG" if latest_signal == 1 else "SHORT" if latest_signal == -1 else "FLAT",
-            }
+        try:
+            fn = strat_map.get(symbol, sg.strategy_mr_vix_tuned)
+            sig = fn(conn, symbol)
+            if sig is not None and not sig.empty:
+                latest = sig.iloc[-1]
+                latest_date = sig.index[-1]
+                val = 1 if latest else 0
+                signals[symbol] = {
+                    "signal": val,
+                    "direction": "LONG" if val == 1 else "FLAT",
+                    "date": str(latest_date),
+                }
+            else:
+                signals[symbol] = {"signal": 0, "direction": "NO_DATA", "date": "unknown"}
+        except Exception as e:
+            signals[symbol] = {"signal": 0, "direction": "ERROR", "date": str(e)}
+
     return signals
 
 
 def compute_position_sizes(signals: dict, portfolio_value: float) -> dict:
-    """
-    Compute dollar position sizes.
-    - Each stock gets equal weight when signal is active
-    - Max 25% per stock, max 50% total
-    """
-    active = {sym: sig for sym, sig in signals.items() if sig["signal"] != 0}
-
-    if not active:
-        return {sym: 0 for sym in signals}
-
-    # Equal weight among active positions
-    n_active = len(active)
-    per_stock = min(
-        portfolio_value * MAX_POSITION_PCT,
-        portfolio_value * TOTAL_EXPOSURE_PCT / n_active,
-    )
+    """Compute dollar targets for approved stocks."""
+    weights = {
+        "AMZN": 0.25,
+        "CAT": 0.20,
+        "NVDA": 0.20,
+        "V": 0.15,
+        "COST": 0.20,
+    }
 
     positions = {}
     for sym, sig in signals.items():
-        if sig["signal"] == 0:
-            positions[sym] = 0
+        if sig["signal"] == 1:
+            w = weights.get(sym, 0.20)
+            positions[sym] = portfolio_value * w
         else:
-            positions[sym] = per_stock * sig["signal"]  # Negative for short
+            positions[sym] = 0.0
 
     return positions
 
 
-def get_current_holdings(api) -> dict:
-    """Get current paper trading positions."""
-    try:
-        positions = api.list_positions()
-        return {p.symbol: {"qty": int(p.qty), "side": p.side, "market_value": float(p.market_value)} for p in positions}
-    except Exception as e:
-        print(f"  Error getting positions: {e}")
-        return {}
+def run_paper_trading(execute: bool = False, broker_name: str = "alpaca"):
+    print(f"=== Paper Trader (Trading Cage Protected): {datetime.now().strftime('%Y-%m-%d %H:%M')} ===", flush=True)
+    print(f"Mode: {'LIVE EXECUTION' if execute else 'DRY RUN (no orders submitted)'}", flush=True)
+    print(f"Broker: {broker_name.upper()}", flush=True)
+    print(f"Approved Universe: {APPROVED_STOCKS}\n", flush=True)
 
+    # 1. Connect Broker & Gateway
+    broker = get_broker_adapter(broker_name)
+    gateway = TradeGateway()
 
-def compute_orders(target_positions: dict, current_holdings: dict, api) -> list:
-    """
-    Compare target vs current positions and generate orders.
-    Returns list of order dicts.
-    """
-    orders = []
+    acct = broker.get_account()
+    portfolio_val = acct.get("portfolio_value", 20000.0)
+    print(f"Account Balance:    ${portfolio_val:,.2f}")
+    print(f"Available Cash:     ${acct.get('cash', 0.0):,.2f}")
+    print(f"Buying Power:       ${acct.get('buying_power', 0.0):,.2f}")
 
-    for symbol, target_dollars in target_positions.items():
-        current = current_holdings.get(symbol, {"qty": 0, "market_value": 0})
-        current_value = current["market_value"]
+    # 2. Generate Signals
+    conn = init_db(config.DB_PATH)
+    signals = get_current_signals(conn)
 
-        diff = target_dollars - current_value
+    print("\n--- Strategy Signals ---")
+    for sym, sig in signals.items():
+        print(f"  {sym:5s}: {sig['direction']:6s} (signal={sig['signal']}, as of {sig['date']})")
 
-        if abs(diff) < 500:  # Skip tiny adjustments
-            continue
+    # 3. Position Sizing
+    targets = compute_position_sizes(signals, portfolio_val)
+    holdings = broker.get_positions()
 
-        # Get current price for share calculation
-        try:
-            quote = api.get_latest_trade(symbol)
-            price = quote.price
-        except Exception:
-            price = None
+    print("\n--- Target vs Current Holdings ---")
+    for sym in APPROVED_STOCKS:
+        tgt = targets.get(sym, 0.0)
+        curr = holdings.get(sym, {}).get("market_value", 0.0)
+        print(f"  {sym:5s}: Target: ${tgt:8,.0f} | Current: ${curr:8,.0f} | Diff: ${tgt - curr:8,.0f}")
 
-        if price is None or price <= 0:
-            continue
+    # 4. Generate Orders & Validate Through Trading Cage Gateway
+    print("\n--- Trading Cage Gateway Validation ---")
+    orders_to_submit = []
 
-        shares = int(abs(diff) / price)
-        if shares == 0:
+    # Get latest VIX
+    vix_row = conn.execute("SELECT vix FROM daily_features ORDER BY date DESC LIMIT 1").fetchone()
+    vix_level = float(vix_row[0]) if vix_row and vix_row[0] else 18.0
+
+    for sym, target_dollars in targets.items():
+        curr_val = holdings.get(sym, {}).get("market_value", 0.0)
+        diff = target_dollars - curr_val
+
+        if abs(diff) < 100:  # Skip trivial adjustments
             continue
 
         side = "buy" if diff > 0 else "sell"
 
-        orders.append({
-            "symbol": symbol,
-            "side": side,
-            "qty": shares,
-            "type": "market",
-            "time_in_force": "day",
-            "target_dollars": target_dollars,
-            "current_value": current_value,
-            "diff": diff,
-            "price_estimate": price,
-        })
-
-    return orders
-
-
-def log_trades(conn, orders: list, signals: dict, executed: bool):
-    """Log trade decisions to DuckDB."""
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS trade_log (
-            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            symbol TEXT,
-            signal_direction TEXT,
-            order_side TEXT,
-            qty INT,
-            price_estimate DOUBLE,
-            target_dollars DOUBLE,
-            executed BOOLEAN,
-            notes TEXT
+        # Pass through the Deterministic Risk Gateway
+        decision = gateway.validate_order(
+            symbol=sym,
+            side=side,
+            requested_dollars=abs(diff),
+            current_holdings=holdings,
+            portfolio_value=portfolio_val,
+            vix_level=vix_level,
+            strategy_name=f"{sym}_production_strategy"
         )
-    """)
 
-    for order in orders:
-        sig = signals.get(order["symbol"], {})
-        conn.execute("""
-            INSERT INTO trade_log (symbol, signal_direction, order_side, qty, price_estimate, target_dollars, executed, notes)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, [
-            order["symbol"],
-            sig.get("direction", "UNKNOWN"),
-            order["side"],
-            order["qty"],
-            order["price_estimate"],
-            order["target_dollars"],
-            executed,
-            f"mr_vix_tuned signal on {sig.get('date', 'unknown')}",
-        ])
+        status_tag = f"[{decision['verdict']}]"
+        print(f"  {sym:5s} {side.upper():4s} ${abs(diff):7,.0f} -> {status_tag:10s} Approved: ${decision['approved_dollars']:7,.0f}")
+        if decision["rejection_reasons"]:
+            print(f"       Rejection Reasons: {', '.join(decision['rejection_reasons'])}")
 
+        if decision["allowed"] and decision["approved_dollars"] >= 100:
+            # Estimate shares
+            price_row = conn.execute(f"SELECT close FROM daily_bars WHERE symbol = '{sym}' ORDER BY timestamp DESC LIMIT 1").fetchone()
+            price = float(price_row[0]) if price_row else 100.0
+            shares = int(decision["approved_dollars"] / price)
 
-def main():
-    execute = "--execute" in sys.argv
+            if shares > 0:
+                orders_to_submit.append({
+                    "symbol": sym,
+                    "side": side,
+                    "qty": shares,
+                    "price_est": price,
+                    "decision": decision
+                })
 
-    print(f"=== Paper Trader: {datetime.now().strftime('%Y-%m-%d %H:%M')} ===")
-    print(f"Mode: {'LIVE EXECUTION' if execute else 'DRY RUN (no orders submitted)'}")
-    print(f"Approved stocks: {APPROVED_STOCKS}")
-    print(f"Portfolio: ${PORTFOLIO_VALUE:,.0f}")
-    print()
+    # 5. Order Execution & Audit Logging
+    print("\n--- Execution & Audit Logging ---")
+    if not orders_to_submit:
+        print("  No rebalancing orders required today (portfolio aligned).")
+    else:
+        for item in orders_to_submit:
+            sym = item["symbol"]
+            qty = item["qty"]
+            side = item["side"]
+            dec = item["decision"]
 
-    # Connect
-    conn = duckdb.connect(config.DB_PATH, read_only=True)
-    api = tradeapi.REST(config.API_KEY, config.API_SECRET, config.BASE_URL, api_version="v2")
+            if execute:
+                order_res = broker.submit_order(symbol=sym, qty=qty, side=side)
+                order_id = order_res.get("order_id", "ERROR")
+                print(f"  EXECUTED: {side.upper()} {qty} {sym} -> Order ID: {order_id} ({order_res.get('status')})")
+                gateway.log_audit(conn, dec, shares=qty, est_price=item["price_est"], broker=broker_name, broker_order_id=order_id, status="SUBMITTED")
+            else:
+                sim_id = f"SIM-{sym}-{datetime.now().strftime('%H%M%S')}"
+                print(f"  SIMULATED: {side.upper()} {qty} {sym} @ ~${item['price_est']:.2f} (Paper Trade Logged)")
+                gateway.log_audit(conn, dec, shares=qty, est_price=item["price_est"], broker=broker_name, broker_order_id=sim_id, status="SIMULATED")
 
-    # Get account info
-    try:
-        account = api.get_account()
-        actual_portfolio = float(account.portfolio_value)
-        print(f"Paper account value: ${actual_portfolio:,.2f}")
-        print(f"Buying power: ${float(account.buying_power):,.2f}")
-    except Exception as e:
-        print(f"Could not get account info: {e}")
-        actual_portfolio = PORTFOLIO_VALUE
-
-    # Generate signals
-    print("\n--- Signals ---")
-    signals = get_current_signals(conn)
     conn.close()
-
-    for sym, sig in signals.items():
-        print(f"  {sym}: {sig['direction']} (signal={sig['signal']}, date={sig['date']})")
-
-    # Position sizing
-    positions = compute_position_sizes(signals, actual_portfolio)
-    print("\n--- Target Positions ---")
-    for sym, dollars in positions.items():
-        if dollars != 0:
-            print(f"  {sym}: ${dollars:+,.0f}")
-        else:
-            print(f"  {sym}: FLAT (no position)")
-
-    # Current holdings
-    print("\n--- Current Holdings ---")
-    holdings = get_current_holdings(api)
-    if holdings:
-        for sym, h in holdings.items():
-            print(f"  {sym}: {h['qty']} shares (${h['market_value']:,.2f})")
-    else:
-        print("  No positions")
-
-    # Compute orders
-    orders = compute_orders(positions, holdings, api)
-
-    print("\n--- Orders ---")
-    if not orders:
-        print("  No orders needed (positions match targets)")
-    else:
-        for o in orders:
-            print(f"  {o['side'].upper()} {o['qty']} {o['symbol']} @ ~${o['price_estimate']:.2f} (target: ${o['target_dollars']:+,.0f})")
-
-    # Execute or log
-    if execute and orders:
-        print("\n--- Executing ---")
-        for o in orders:
-            try:
-                api.submit_order(
-                    symbol=o["symbol"],
-                    qty=o["qty"],
-                    side=o["side"],
-                    type=o["type"],
-                    time_in_force=o["time_in_force"],
-                )
-                print(f"  SUBMITTED: {o['side']} {o['qty']} {o['symbol']}")
-            except Exception as e:
-                print(f"  FAILED: {o['symbol']} - {e}")
-
-    # Log to DuckDB
-    log_conn = init_db(config.DB_PATH)
-    log_trades(log_conn, orders, signals, executed=execute)
-    log_conn.close()
-    print(f"\nLogged {len(orders)} orders to trade_log table.")
-
-    print("\nDone.")
-
+    print(f"\nAll decisions logged to DuckDB `trade_audit_log` table.", flush=True)
 
 if __name__ == "__main__":
-    main()
+    is_exec = "--execute" in sys.argv
+    run_paper_trading(execute=is_exec)
