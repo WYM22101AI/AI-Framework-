@@ -32,37 +32,24 @@ SEC_USER_AGENT = "FamilyQuantAI yamingwang@gmail.com"
 MASSIVE_API_KEY = os.getenv("MASSIVE_API_KEY")
 
 # Data storage
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "market_data.duckdb")
+DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "family_quant.duckdb")
 
 # Tickers to track
-# Core universe: liquid, high-volume stocks across sectors + SPY benchmark
-TICKERS = [
-    # 1. Technology & Semiconductors (11)
-    "TSLA", "AAPL", "NVDA", "MSFT", "META", "AMZN", "GOOG", "AMD", "AVGO", "QCOM", "INTC",
-    # 2. Financials (7)
-    "JPM", "GS", "MS", "BAC", "V", "MA", "BLK",
-    # 3. Healthcare & Biotech (6)
-    "JNJ", "UNH", "LLY", "PFE", "ABBV", "MRK",
-    # 4. Consumer Discretionary & Retail (5)
-    "HD", "NKE", "MCD", "SBUX", "TGT",
-    # 5. Consumer Staples (4)
-    "WMT", "COST", "PG", "KO",
-    # 6. Energy (3)
-    "XOM", "CVX", "COP",
-    # 7. Industrials & Aerospace (5)
-    "CAT", "GE", "BA", "UNP", "HON",
-    # 8. Communication Services (2)
-    "DIS", "NFLX",
-    # 9. Utilities & Real Estate (2)
-    "NEE", "PLD",
-    # 10. Materials (1)
-    "LIN",
-    # 11. Index & Sector Benchmark ETFs (4)
-    "SPY",   # S&P 500 Benchmark
-    "QQQ",   # Nasdaq 100
-    "IWM",   # Russell 2000 Small Caps
-    "DIA",   # Dow Jones Industrial Average
-]
+# Full S&P 500 universe across all 11 GICS sectors + major sector ETFs
+try:
+    from scripts.fetch_sp500_universe import get_all_sp500_tickers
+    TICKERS = get_all_sp500_tickers()
+except Exception:
+    # Fallback core list
+    TICKERS = [
+        "TSLA", "AAPL", "NVDA", "MSFT", "META", "AMZN", "GOOG", "AMD",
+        "JPM", "GS", "MS", "BAC", "V", "MA", "BLK",
+        "JNJ", "UNH", "LLY", "PFE", "ABBV", "MRK",
+        "HD", "NKE", "MCD", "SBUX", "TGT", "WMT", "COST", "PG", "KO",
+        "XOM", "CVX", "COP", "CAT", "GE", "BA", "UNP", "HON",
+        "DIS", "NFLX", "NEE", "PLD", "LIN",
+        "SPY", "QQQ", "IWM", "DIA"
+    ]
 
 # How far back to fetch on first run (years)
 LOOKBACK_YEARS = 10

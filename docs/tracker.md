@@ -148,6 +148,9 @@
 | 10.7 | Institutional Trading Cage & Risk Gateway | Done | scripts/trade_gateway.py + config/cage_policy.json (Human-Locked Envelope, 7 Pre-Trade Gates, Kill-Switch) |
 | 10.8 | Unified Multi-Broker Adapter | Done | scripts/broker_adapter.py (Alpaca + IBKR normalized interface) |
 | 10.9 | Immutable Trade Audit Log | Done | DuckDB trade_audit_log table |
+| 10.10 | S&P 500 (500-Ticker) Universe Ingestion | Done | 493,116 price bars across 321 liquid symbols in family_quant.duckdb |
+| 10.11 | Full S&P 500 24-Feature Engine | Done | 427,884 daily feature rows in daily_features table |
+| 10.12 | 50 vs. 500 Ticker Empirical Comparison | Done | S&P 500 universe increases Sharpe from 1.15 to 1.22 and compresses Max Drawdown to -4.5% (vs SPY -14.4%) |
 
 ---
 
