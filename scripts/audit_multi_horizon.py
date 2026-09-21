@@ -42,7 +42,10 @@ def run_multi_horizon_audit():
         ORDER BY release_date
     """).fetchdf().set_index("date")
     fed_df["daily_rf"] = (fed_df["rate_pct"] / 100.0) / 252.0
-    daily_rf = fed_df["daily_rf"].reindex(pd.to_datetime(closes.index).date).ffill().fillna(0.01 / 252.0)
+    
+    # Proper timezone-safe date alignment
+    date_keys = pd.to_datetime(closes.index).tz_localize(None).normalize().date
+    daily_rf = fed_df["daily_rf"].reindex(date_keys).bfill().ffill()
     daily_rf.index = closes.index
 
     # Strategy signals across assets
@@ -66,8 +69,8 @@ def run_multi_horizon_audit():
         asset_returns.append(strat_r)
         asset_weights.append(sig)
 
-    df_asset_ret = pd.concat(asset_returns, axis=1)
-    df_asset_sig = pd.concat(asset_weights, axis=1)
+    df_asset_ret = pd.concat(asset_returns, axis=1).fillna(0.0)
+    df_asset_sig = pd.concat(asset_weights, axis=1).fillna(0.0)
 
     # Multi-asset portfolio return (20% cap per stock, max 50% equity, remainder in real Fed Funds cash)
     active_stock_exposure = (df_asset_sig * 0.20).sum(axis=1).clip(upper=0.50)
