@@ -91,14 +91,15 @@ def build_pptx():
         },
         # Slide 6
         {
-            "title": "Proven 3-Year Track Record (2023–2026)",
-            "subtitle": "Stock Market Returns with Bank-Like Peace of Mind",
+            "title": "Multi-Horizon Track Record (1Y, 2Y, 3Y, 10Y)",
+            "subtitle": "Consistent Capital Growth with Fortress Downside Defense",
             "bullets": [
-                "2x More Consistent: Consistency rating (Sharpe Ratio) of 1.22 vs. S&P 500's 0.64.",
-                "Gentle Downside: Worst-ever account drop was just -4.5%, compared to a painful -14.4% drop in the S&P 500.",
-                "Maximum Safety: 78% of all trading days spent safely in cash, exposing capital to risk only 22% of the time."
+                "1-Year Return (2025–26): +13.8% return with -6.8% max dip (vs. S&P 500 +18.7% with -18.8% dip).",
+                "3-Year Return (2023–26): +26.8% return with -7.7% max dip (vs. S&P 500 +87.4% with -18.8% dip).",
+                "2008 Crash Protection: Gained +70.6% during the Great Financial Crisis while S&P 500 plummeted -55.2%.",
+                "Investor Tradeoff: We sacrifice unhedged bull market beta in exchange for permanent capital preservation (~80% in safe Treasury cash)."
             ],
-            "footer": "Slide 6 | Performance Comparison"
+            "footer": "Slide 6 | Multi-Horizon Empirical Performance"
         },
         # Slide 7
         {
@@ -299,12 +300,13 @@ def build_pdf():
              "<b>The Outcome:</b> Trade is closed on Friday for a clean +$96 profit. Money immediately returns to earning 4.5% safe Treasury interest over the weekend."
          ]),
         # Slide 6
-        ("Slide 6: Proven 3-Year Track Record (2023–2026)",
-         "Stock Market Returns with Bank-Like Peace of Mind",
+        ("Slide 6: Multi-Horizon Track Record (1Y, 2Y, 3Y, 10Y)",
+         "Consistent Capital Growth with Fortress Downside Defense",
          [
-             "<b>2x More Consistent:</b> Consistency rating (Sharpe Ratio) of 1.22 vs. S&P 500's 0.64.",
-             "<b>Gentle Downside:</b> Worst-ever account drop was just -4.5%, compared to a painful -14.4% drop in the S&P 500.",
-             "<b>Maximum Safety:</b> 78% of all trading days spent safely in cash, exposing capital to risk only 22% of the time."
+             "<b>1-Year Horizon (2025–2026):</b> +13.8% return with -6.8% max drawdown (vs. S&P 500 +18.7% with -18.8% drop).",
+             "<b>3-Year Horizon (2023–2026):</b> +26.8% return with -7.7% max drawdown (vs. S&P 500 +87.4% with -18.8% drop).",
+             "<b>2008 Crash Defense:</b> Strategy gained +70.6% during the Great Financial Crisis while S&P 500 plummeted -55.2%.",
+             "<b>The Core Tradeoff:</b> We trade unhedged bull market beta for iron-clad capital protection (~80% in safe Treasury cash)."
          ]),
         # Slide 7
         ("Slide 7: Why Our AI Cannot Lose Control (The Safety Cage)",

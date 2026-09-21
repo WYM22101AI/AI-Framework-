@@ -53,10 +53,13 @@ def compute_strategy_returns(
     """
     prices = prices.set_index("date").sort_index()
 
-    # Next-day return: open-to-close (signal at close T, enter at open T+1)
+    # Next-day return for strategy: open-to-close (signal at close T, enter at open T+1)
     prices["next_open"] = prices["open"].shift(-1)
     prices["next_close"] = prices["close"].shift(-1)
     prices["forward_return"] = (prices["next_close"] - prices["next_open"]) / prices["next_open"]
+
+    # True Buy & Hold Benchmark Return: Close-to-Close (Holding continuously overnight + daytime)
+    prices["close_to_close_return"] = (prices["next_close"] - prices["close"]) / prices["close"]
 
     # Align signal with prices
     result = pd.DataFrame(index=prices.index)
@@ -72,8 +75,8 @@ def compute_strategy_returns(
     result["cash_yield"] = (1.0 - result["signal"].abs()) * daily_rf
     result["strategy_return"] = (result["signal"] * result["forward_return"]) - result["cost"] + result["cash_yield"]
 
-    # Benchmark: buy and hold
-    result["benchmark_return"] = prices["forward_return"]
+    # Benchmark: True Buy and Hold (Close-to-Close)
+    result["benchmark_return"] = prices["close_to_close_return"]
 
     result = result.dropna()
     return result
