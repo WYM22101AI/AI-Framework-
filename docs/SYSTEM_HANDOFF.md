@@ -109,7 +109,53 @@ $$\text{Position Size} = \text{Base Allocation} \times F(\text{Z-Score Dip Depth
 
 ---
 
-## 7. Current Project Roadmap & Immediate Next Steps
+## 8. The Independent Deterministic Quant Auditor Layer
+
+```
+                  AI RESEARCH AGENT
+                         │
+          proposes strategy / features
+                         │
+                         ▼
+              ┌───────────────────┐
+              │   BACKTEST ENGINE  │
+              └─────────┬─────────┘
+                        │
+                        ▼
+                 raw results
+                        │
+             ┌──────────┴──────────┐
+             │                     │
+             ▼                     ▼
+       AI explanation        INDEPENDENT AUDITOR (Deterministic Python/SQL)
+                                   │
+                 ┌─────────────────┼─────────────────┐
+                 ▼                 ▼                 ▼
+             DATA AUDIT       LOGIC AUDIT       PERFORMANCE AUDIT
+          (Look-ahead &    (Cent-by-Cent      (Negative Controls &
+          Joins & Timestamps) P&L Reconstruct) Synthetic Known Answers)
+                                   │
+                                   ▼
+                   ╔══════════════════════════════════════╗
+                   ║       BACKTEST TRUST SCORECARD       ║
+                   ║     (14 Deterministic Pass/Fail)     ║
+                   ╚══════════════════════════════════════╝
+```
+
+### The 9 Institutional Safeguards:
+1. **Immutable Decision-Time Tracking:** $T_{\text{data}} \le T_{\text{cutoff}} \le T_{\text{signal}} < T_{\text{order}} \le T_{\text{fill}}$.
+2. **Independent Cent-by-Cent P&L Reconstructor:** Reconstructs equity, fees, and cash yield from raw fills to $0.00 exact tolerance.
+3. **Data Join & Leakage Auditor:** Validates public release timestamps on SEC filings and FRED macro data.
+4. **Strategy Hashing & Version Locking:** Freezes SHA-256 parameter hashes before out-of-sample testing.
+5. **Negative Control Corruption Battery:** Scrambles labels and randomizes time; verifies that noise collapses to Sharpe $\le 0.35$.
+6. **Synthetic Known-Answer Unit Tests:** Calibrates against flat stock cash yield, \$100 $\rightarrow$ \$102 steps, 2:1 splits, and gap collars.
+7. **Options Expiration & Contract Validator:** Rejects inverted spreads and expired option fills.
+8. **Deflated Sharpe Ratio (DSR):** Corrects for multiple testing / data snooping.
+9. **14-Gate Trust Scorecard:** Any single `FAIL` halts strategy promotion.
+
+---
+
+## 9. Current Project Roadmap & Immediate Next Steps
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
