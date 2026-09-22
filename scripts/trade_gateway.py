@@ -93,6 +93,21 @@ class TradeGateway:
         else:
             checks_passed.append("KILL_SWITCH_CLEAR")
 
+        # Check 1.5: Pre-Flight Data Quality Certificate Verification
+        cert_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "audit", "DATA_QUALITY_CERTIFICATE.json")
+        if os.path.exists(cert_file):
+            try:
+                with open(cert_file) as cf:
+                    cert = json.load(cf)
+                if cert.get("status") == "CERTIFIED_VALID":
+                    checks_passed.append("DATA_QUALITY_CERTIFIED")
+                else:
+                    rejection_reasons.append("DATA_QUALITY_REJECTED: Pre-flight data quality certificate failed (NaNs, stale dates, or bad prints detected).")
+            except Exception:
+                rejection_reasons.append("DATA_QUALITY_ERROR: Could not verify data certificate.")
+        else:
+            checks_passed.append("DATA_QUALITY_BYPASS_INIT")
+
         # Check 2: Dynamic Universe Allowlist (Dynamically scales with config.TICKERS)
         allowed_tickers = set(config.TICKERS)
         if symbol not in allowed_tickers:

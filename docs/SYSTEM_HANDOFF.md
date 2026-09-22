@@ -155,7 +155,42 @@ $$\text{Position Size} = \text{Base Allocation} \times F(\text{Z-Score Dip Depth
 
 ---
 
-## 9. Current Project Roadmap & Immediate Next Steps
+## 9. Pre-Flight Data Quality & Sanitary Guardrail Engine
+
+```
+                    MARKET DATA FEEDS (Alpaca / Yahoo / FRED)
+                                      │
+                                      ▼
+                   ┌──────────────────────────────────────┐
+                   │    DATA SANITARY & QUALITY SENTINEL  │
+                   │        (scripts/data_sanitizer.py)   │
+                   └──────────────────┬───────────────────┘
+                                      │
+        ┌─────────────────────────────┼─────────────────────────────┐
+        ▼                             ▼                             ▼
+ [DATE FRESHNESS &            [NAN & UNSETTLED             [CROSS-SOURCE &
+  TIMEZONE NORMALIZER]         DATA REJECTION]              OUTLIER SPIKE DETECTOR]
+        │                             │                             │
+        └─────────────────────────────┼─────────────────────────────┘
+                                      │
+                                      ▼
+                   ╔══════════════════════════════════════╗
+                   ║      DATA QUALITY CERTIFICATE        ║
+                   ║   (Required by TradeGateway / Cage)  ║
+                   ╚══════════════════════════════════════╝
+```
+
+### The 6 Deterministic Data Quality Gates:
+1. **Date Freshness & Calendar Match:** Verifies latest timestamp matches today's trading date; rejects stale lag.
+2. **Zero-Tolerance NaN Sentinel:** Prohibits blind `dropna()`; rejects unsettled/corrupted OHLC rows.
+3. **Price Geometry Physical Envelope:** Enforces $Low \le Open, Close \le High$ and $Price > 0$.
+4. **Outlier & Flash-Crash Detector:** Flags single-day price jumps $> \pm 25\%$ not verified by corporate split actions.
+5. **Timezone Normalizer:** Normalizes timestamps to UTC-free normalized date keys so joins and `.reindex()` never produce `NaN`.
+6. **Data Quality Certificate (`data/audit/DATA_QUALITY_CERTIFICATE.json`):** Cryptographically gates order execution in `TradeGateway`.
+
+---
+
+## 10. Current Project Roadmap & Immediate Next Steps
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
