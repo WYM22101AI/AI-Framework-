@@ -193,7 +193,50 @@ $$\text{Position Size} = \text{Base Allocation} \times F(\text{Z-Score Dip Depth
 
 ---
 
-## 10. Current Project Roadmap & Immediate Next Steps
+## 10. Multi-Family Alpha Factory & Independence Correlation Matrix
+
+```
+                   RAW DAILY PRICE & SECTOR DATA (DuckDB)
+                                     │
+                                     ▼
+                  ┌─────────────────────────────────────┐
+                  │          THE ALPHA FACTORY          │
+                  │      (scripts/alpha_factory.py)     │
+                  └──────────────────┬──────────────────┘
+                                     │
+     ┌──────────────┬────────────────┼────────────────┬──────────────┐
+     ▼              ▼                ▼                ▼              ▼
+ [ALPHA 1:      [ALPHA 2:        [ALPHA 3:        [ALPHA 4:      [ALPHA 5:      [ALPHA 6:
+  12-1M MOM]     5D REVERSAL]     TREND ACCEL]     VOL SQUEEZE]   SECTOR RESID]  PEER REV]
+     │              │                │                │              │              │
+     └──────────────┴────────────────┼────────────────┴──────────────┴──────────────┘
+                                     │
+                                     ▼
+                  ┌─────────────────────────────────────┐
+                  │    INDEPENDENT QUANT AUDITOR GATE   │
+                  │   (IC, Sharpe, Deflated DSR, Noise) │
+                  └──────────────────┬──────────────────┘
+                                     │
+                                     ▼
+                  ╔═════════════════════════════════════╗
+                  ║     ALPHA INDEPENDENCE MATRIX       ║
+                  ║   (Average Correlation: 0.155)      ║
+                  ╚═════════════════════════════════════╝
+```
+
+### The 6 Phase 1 Alpha Families:
+1. **Alpha 1: 12-1m Medium-Term Momentum:** 12-month return excluding the most recent month ($R_{t-21} / R_{t-252} - 1$).
+2. **Alpha 2: 5-Day Short-Term Reversal:** Oversold panic drop $(Close - \mu_{20}) / \sigma_{20} < -2.0$.
+3. **Alpha 3: Trend Acceleration (2nd Derivative):** Rate of velocity change $\text{Return}_{20d} - \frac{1}{3}\text{Return}_{60d}$.
+4. **Alpha 4: Volatility Squeeze Breakout:** Bollinger bandwidth percentile squeeze followed by directional expansion.
+5. **Alpha 5: Sector-Relative Residual Momentum:** Stock return minus sector ETF return ($\text{Stock}_{20d} - \text{Sector}_{20d}$).
+6. **Alpha 6: Intra-Sector Peer Mean Reversion:** Dislocation from top 4 industry basket peers ($R_{\text{Stock},5d} - \bar{R}_{\text{Peers},5d} < -3.5\%$).
+
+- **Independence Audit:** Average pairwise correlation across all 6 alpha families is **0.155**, proving genuine statistical orthogonality.
+
+---
+
+## 11. Current Project Roadmap & Immediate Next Steps
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
