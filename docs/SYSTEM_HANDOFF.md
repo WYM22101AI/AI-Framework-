@@ -12,21 +12,24 @@
 
 ---
 
-## 2. Core Investment Philosophy & Capital Fortress Model
+## 2. Core Investment Philosophy: Return Stacking / Portable Alpha
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
-│                        HOW CAPITAL IS MANAGED                          │
+│               PORTABLE ALPHA / RETURN STACKING ARCHITECTURE            │
 ├────────────────────────────────────────────────────────────────────────┤
-│ 1. THE CASH VAULT (~80% Default Allocation)                            │
-│    • Backed 100% by US Treasury yield / SPAXX Money Market (~4.5% net) │
-│    • Earning safe compound interest daily                              │
-│    • Zero market risk                                                  │
+│ 1. PERMANENT CASH COLLATERAL (100% of Equity in SGOV / SPAXX)         │
+│    • Earning ~4.60% annual interest 365 days/yr continuously           │
+│    • 95% Broker Margin Collateral Value (Initial Margin Req ~5-10%)    │
 ├────────────────────────────────────────────────────────────────────────┤
-│ 2. PRECISION TACTICAL ALPHA (~20% Active Allocation)                   │
-│    • Deployed into 1 to 5 day mean-reversion & momentum dislocations   │
-│    • S&P 500 blue-chip stocks exclusively                              │
-│    • Captures bounce-back and immediately sweeps back to cash          │
+│ 2. TACTICAL 48-HOUR MARGIN OVERLAY (Max 30% Margin Debt / 1.30x)       │
+│    • High-conviction sniper trades execute via margin borrowing        │
+│    • Holding duration: 1 to 3 days                                     │
+│    • Margin interest deducted: ~0.033% per trade (~$6-$10 total)       │
+├────────────────────────────────────────────────────────────────────────┤
+│ 3. AUTOMATED MARGIN REPAYMENT & PROFIT HARVESTING                      │
+│    • Trade exits at +3.0% rebound -> Margin balance paid off instantly│
+│    • Net trading profit sweeps into SGOV base capital                  │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 

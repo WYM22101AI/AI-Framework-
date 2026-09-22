@@ -131,23 +131,25 @@ class TradeGateway:
         else:
             checks_passed.append("VOLATILITY_NORMAL")
 
-        # Check 5: Maximum Capital Envelope & Leverage Limit
-        max_envelope = cap_limits.get("max_capital_envelope_usd", 20000.0)
-        max_leverage = risk_perms.get("max_leverage", 1.0)
+        # Check 5: Maximum Capital Envelope & Tactical Margin Leverage Limit
+        max_envelope = cap_limits.get("max_capital_envelope_usd", 100000.0)
+        max_leverage = risk_perms.get("max_leverage", 1.30)
+        max_margin_debt = risk_perms.get("max_margin_debt_usd", 30000.0)
+        
         current_gross_exposure = sum(abs(v.get("market_value", 0.0)) for v in current_holdings.values())
         new_gross_exposure = current_gross_exposure + abs(requested_dollars)
 
-        if new_gross_exposure > (max_envelope * max_leverage):
-            # Clamp to remaining capital envelope capacity
-            available_capacity = max(0.0, (max_envelope * max_leverage) - current_gross_exposure)
+        # Enforce maximum margin debt limit ($30,000 max) and 1.30x leverage
+        if new_gross_exposure > min(max_envelope * max_leverage, max_envelope + max_margin_debt):
+            available_capacity = max(0.0, min(max_envelope * max_leverage, max_envelope + max_margin_debt) - current_gross_exposure)
             if available_capacity < cap_limits.get("min_order_dollars_usd", 100.0):
-                rejection_reasons.append(f"CAPITAL_ENVELOPE_EXCEEDED: Gross exposure (${new_gross_exposure:,.0f}) exceeds capital cage limit (${max_envelope:,.0f}).")
+                rejection_reasons.append(f"MARGIN_LIMIT_EXCEEDED: New exposure (${new_gross_exposure:,.0f}) exceeds max margin debt limit (${max_margin_debt:,.0f}).")
             else:
                 approved_dollars = available_capacity
                 verdict = "MODIFIED"
-                checks_passed.append("CAPITAL_ENVELOPE_CLAMPED")
+                checks_passed.append("MARGIN_DEBT_CLAMPED")
         else:
-            checks_passed.append("CAPITAL_ENVELOPE_OK")
+            checks_passed.append("MARGIN_COLLATERAL_BUFFER_OK")
 
         # Check 6: Maximum Single Position Size Limit
         max_pos_usd = cap_limits.get("max_single_position_usd", 5000.0)

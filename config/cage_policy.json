@@ -11,7 +11,10 @@
   },
   "risk_permissions": {
     "allow_shorting": false,
-    "max_leverage": 1.0,
+    "max_leverage": 1.30,
+    "max_margin_debt_usd": 30000.0,
+    "min_margin_cushion_pct": 0.70,
+    "margin_financing_rate_annual": 0.060,
     "allow_naked_options": false,
     "allow_options_spreads": false
   },

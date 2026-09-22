@@ -45,11 +45,12 @@ def generate_daily_executive_report(execute_orders: bool = False, broker_name: s
     cash_pct = (cash_val / portfolio_val * 100.0) if portfolio_val > 0 else 100.0
     invested_pct = (invested_val / portfolio_val * 100.0) if portfolio_val > 0 else 0.0
 
-    log("\n[SECTION 1: ACCOUNT HEALTH & ALLOCATION BREAKDOWN]")
+    log("\n[SECTION 1: ACCOUNT HEALTH & RETURN STACKING ALLOCATION]")
     log(f"  • Broker & Account:        {broker_name.upper()} ({acct.get('account_number', 'PAPER')})")
-    log(f"  • Total Portfolio Value:   ${portfolio_val:,.2f}")
-    log(f"  • Cash in Safe Vault:      ${cash_val:,.2f} ({cash_pct:.1f}% of total) [Earning ~4.5% Yield]")
-    log(f"  • Active Stock Exposure:   ${invested_val:,.2f} ({invested_pct:.1f}% of total)")
+    log(f"  • Total Portfolio Equity:  ${portfolio_val:,.2f}")
+    log(f"  • Base SGOV/Cash Collateral:${portfolio_val:,.2f} (100.0% Continuous Earning @ ~4.6% Annual Yield)")
+    log(f"  • Active Margin Overlay:   ${invested_val:,.2f} ({(invested_val/portfolio_val*100.0) if portfolio_val>0 else 0.0:.1f}% Debt / Max 30% Allowed)")
+    log(f"  • Margin Safety Cushion:   {(1.0 - (invested_val/portfolio_val if portfolio_val>0 else 0.0))*100.0:.1f}% (Required >= 70.0% Buffer)")
     log(f"  • Available Buying Power:  ${acct.get('buying_power', 0.0):,.2f}")
 
     log("\n[SECTION 2: CURRENT OPEN POSITIONS & UNREALIZED P&L]")
